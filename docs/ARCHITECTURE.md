@@ -65,3 +65,23 @@ We leverage Entity Framework Core (EF Core) as our Object-Relational Mapper (ORM
 * **SQL Translation:** Translates C# LINQ queries into highly optimized SQL, abstracting away raw database commands.
 * **Change Tracking:** Monitors entities fetched from the database, enabling precise and efficient SQL `UPDATE` generation for modified properties.
 * **Migrations:** Maintains database version control. As domain models evolve, EF Core Migrations programmatically apply structural schema updates to the SQL database, ensuring code and persistence layers remain synchronized.
+
+## API Layer Architecture
+
+Our external interaction surface is built using standard ASP.NET Core REST API patterns. This layer securely exposes our domain models to clients like the Angular PWA.
+
+### Data Transfer Objects (DTOs)
+
+To prevent over-posting (mass assignment) vulnerabilities, the API does not accept or return raw domain models directly. Instead, we use Data Transfer Objects.
+
+DTOs act as a strict contract defining exactly what data is permitted in a request. For example, a `CreateBoardDto` only accepts properties the client is allowed to set (like `Name` and `Location`), while deliberately omitting system-managed properties (like internal `Id` fields). This pattern guarantees that our internal entity state cannot be manipulated via unexpected JSON payloads.
+
+### Controllers
+
+Incoming HTTP requests are handled by dedicated Controller classes (e.g., `BoardsController`, `IncidentsController`), which map directly to RESTful endpoints using standard HTTP verbs (`GET`, `POST`, `PUT`, `DELETE`).
+
+The typical data flow within a controller action follows these steps:
+1. **Receive:** Intercept the incoming request and bind the JSON payload to the appropriate incoming DTO.
+2. **Translate:** Map the incoming DTO into our internal domain model.
+3. **Persist:** Instruct the `ApplicationDbContext` to track the new or updated entity and commit the changes to the database.
+4. **Respond:** Map the resulting domain model back into a safe response DTO and return it with the appropriate HTTP status code (e.g., `201 Created`).

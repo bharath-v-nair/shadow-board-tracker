@@ -172,9 +172,11 @@ dist
 .angular/
 
 # Learning / Internal Documentation
-Backend-Architecture-HLD.md
-Interview.md
-docs/shadowboardtracker_implementation_plan.md
+docs/Backend-Architecture-HLD.md
+docs/Interview.md
 docs/PRD-and-Tech.spec.md
-shadowboardtracker_implementation_plan.md
-build.spec.md
+docs/shadowboardtracker_implementation_plan.md
+docs/build.spec.md
+
+
+docs/_archive/

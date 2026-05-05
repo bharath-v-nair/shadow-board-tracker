@@ -63,6 +63,9 @@ dotnet run
 
 The API will typically be available at `http://localhost:5000` or `https://localhost:5001`.
 
+Once the backend is running, you can explore the available API endpoints and test requests interactively by navigating to the Swagger UI:
+* `http://localhost:5000/swagger` (or the equivalent HTTPS port mapped in your environment)
+
 ### 3. Frontend Setup (Angular)
 
 In a new terminal window, navigate to the frontend directory and install dependencies.
