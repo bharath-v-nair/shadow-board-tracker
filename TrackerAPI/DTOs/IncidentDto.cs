@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using TrackerAPI.Models;
 
 namespace TrackerAPI.DTOs
 {
@@ -10,7 +11,7 @@ namespace TrackerAPI.DTOs
         public Guid WorkerId { get; set; }
         public DateTime ReportedAt { get; set; }
         public DateTime? ResolvedAt { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public IncidentStatus Status { get; set; }
     }
 
     public class CreateIncidentDto
@@ -22,8 +23,7 @@ namespace TrackerAPI.DTOs
         public Guid WorkerId { get; set; }
 
         [Required]
-        [RegularExpression("^(Open|Closed)$", ErrorMessage = "Status must be 'Open' or 'Closed'")]
-        public string Status { get; set; } = string.Empty;
+        public IncidentStatus Status { get; set; }
     }
 
     public class UpdateIncidentDto
@@ -34,7 +34,6 @@ namespace TrackerAPI.DTOs
         public DateTime? ResolvedAt { get; set; }
 
         [Required]
-        [RegularExpression("^(Open|Closed)$", ErrorMessage = "Status must be 'Open' or 'Closed'")]
-        public string Status { get; set; } = string.Empty;
+        public IncidentStatus Status { get; set; }
     }
 }

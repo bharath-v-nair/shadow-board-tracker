@@ -9,6 +9,6 @@ namespace TrackerAPI.Models
         public Guid WorkerId { get; set; }
         public DateTime ReportedAt { get; set; }
         public DateTime? ResolvedAt { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public IncidentStatus Status { get; set; } = IncidentStatus.Open;
     }
 }

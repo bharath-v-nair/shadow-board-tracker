@@ -47,13 +47,17 @@ Navigate to the API project directory and configure the database.
 cd TrackerAPI
 ```
 
-Ensure your `appsettings.Development.json` has a valid SQL Server connection string under `ConnectionStrings:DefaultConnection`.
+Ensure your `appsettings.Development.json` is properly configured. You will need:
+1. A valid SQL Server connection string under `ConnectionStrings:DefaultConnection`.
+2. A valid SendGrid API Key under `SendGrid:ApiKey` to enable email dispatch for authentication magic links.
 
-Run Entity Framework Core migrations to set up the database schema and execute the built-in seed scripts (which provide sample Boards, Tools, and Workers for local testing):
+Run Entity Framework Core migrations to set up the database schema:
 
 ```bash
 dotnet ef database update
 ```
+
+**Note:** Running this command will also execute the built-in EF Core seed scripts. This automatically populates the database with initial sample data, including a test Worker, ensuring you can immediately test the email dispatch and JWT authentication flows locally.
 
 Run the API:
 

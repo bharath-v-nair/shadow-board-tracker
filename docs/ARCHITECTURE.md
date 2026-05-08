@@ -85,3 +85,14 @@ The typical data flow within a controller action follows these steps:
 2. **Translate:** Map the incoming DTO into our internal domain model.
 3. **Persist:** Instruct the `ApplicationDbContext` to track the new or updated entity and commit the changes to the database.
 4. **Respond:** Map the resulting domain model back into a safe response DTO and return it with the appropriate HTTP status code (e.g., `201 Created`).
+
+## Phase 3: Security & Auth
+
+To ensure our endpoints remain secure without burdening end users with complex authentication flows, we implemented a passwordless authentication model.
+
+### Passwordless "Magic Link" Authentication
+Instead of traditional usernames and passwords, we leverage JSON Web Tokens (JWTs) and SendGrid. 
+When an incident requires action, the system generates a secure, time-limited JWT and uses SendGrid to email a "Magic Link" to the assigned worker. Clicking this link authenticates the worker for that specific task. This approach minimizes friction while maintaining robust security.
+
+### Data Seeding
+For reliable local testing of this authentication flow, our EF Core setup includes automated Data Seeding. Upon running database migrations, the system seeds an initial test Worker record. This ensures that developers can immediately test email dispatch and token validation without manual database setup.

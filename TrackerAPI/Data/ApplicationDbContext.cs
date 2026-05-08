@@ -17,6 +17,16 @@ namespace TrackerAPI.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Worker>().HasData(
+                new Worker
+                {
+                    Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    Name = "Bharath Nair",
+                    Email = "nairbharathofficial@gmail.com",
+                    IsAvailable = true
+                }
+            );
         }
     }
 }

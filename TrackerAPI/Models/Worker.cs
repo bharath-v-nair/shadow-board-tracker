@@ -8,5 +8,7 @@ namespace TrackerAPI.Models
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public bool IsAvailable { get; set; } = true;
+        public string? MagicLinkToken { get; set; }
+        public DateTime? MagicLinkTokenExpiresAt { get; set; }
     }
 }
