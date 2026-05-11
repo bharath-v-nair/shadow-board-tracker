@@ -96,3 +96,22 @@ When an incident requires action, the system generates a secure, time-limited JW
 
 ### Data Seeding
 For reliable local testing of this authentication flow, our EF Core setup includes automated Data Seeding. Upon running database migrations, the system seeds an initial test Worker record. This ensures that developers can immediately test email dispatch and token validation without manual database setup.
+
+## Phase 4-7: Frontend Architecture & Integration
+
+Our client application is a modern Progressive Web App (PWA) built with Angular (v17+). It serves as the primary interface for QA inspectors on the factory floor.
+
+### Angular Standalone Components & Signals
+We have fully embraced Angular's modern authoring format. 
+* **Standalone Components:** We avoid `NgModules` to reduce boilerplate and keep component dependencies explicit and localized.
+* **Signals:** We use Angular Signals for fine-grained reactivity and state management across the Dashboard, Scanner, and Board Detail views. This provides a more predictable and performant UI update cycle compared to traditional RxJS Subjects for simple state.
+
+### HTTP Interceptors & Auth
+To securely communicate with the protected .NET API endpoints, the Angular app utilizes an `AuthInterceptor`. This interceptor automatically attaches the JWT (obtained via the "Magic Link") as a Bearer token to all outgoing HTTP requests, ensuring seamless authorization.
+
+### Cross-Origin Resource Sharing (CORS)
+The .NET backend is configured to accept cross-origin requests from the Angular dev server (`http://localhost:4200`). 
+* **Development Gotcha:** Modern browsers (specifically Chrome) aggressively cache CORS preflight `OPTIONS` requests. If token headers or CORS policies change during local development, developers must use an **Incognito/Private window** to bypass this local cache and ensure accurate request routing.
+
+### Hardware Integration
+We utilize `@zxing/ngx-scanner` for hardware-agnostic QR code scanning. This allows QA inspectors to use any mobile device camera via the browser without requiring native app wrappers.

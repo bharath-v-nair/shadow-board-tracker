@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TrackerAPI.Controllers
 {
@@ -57,6 +58,7 @@ namespace TrackerAPI.Controllers
             };
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<IncidentDto>> PostIncident(CreateIncidentDto createIncidentDto)
         {
@@ -85,6 +87,7 @@ namespace TrackerAPI.Controllers
             return CreatedAtAction(nameof(GetIncident), new { id = incident.Id }, incidentDto);
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutIncident(Guid id, UpdateIncidentDto updateIncidentDto)
         {
@@ -107,6 +110,7 @@ namespace TrackerAPI.Controllers
             return NoContent();
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteIncident(Guid id)
         {

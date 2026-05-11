@@ -9,11 +9,12 @@ Upon reporting a missing tool, the system automatically assigns a recovery task 
 ## Tech Stack
 
 **Frontend**
-* Angular (v17+)
+* Angular (v17+) PWA
+* Standalone Components & Signals
 * TypeScript
 * Tailwind CSS
 * Angular Material
-* `ngx-scanner` (QR scanning capabilities)
+* `@zxing/ngx-scanner` (QR scanning capabilities)
 
 **Backend & Persistence**
 * .NET 10 Web API (C#)
@@ -65,18 +66,17 @@ Run the API:
 dotnet run
 ```
 
-The API will typically be available at `http://localhost:5000` or `https://localhost:5001`.
+The API will run on `http://localhost:5029`.
 
 Once the backend is running, you can explore the available API endpoints and test requests interactively by navigating to the Swagger UI:
-* `http://localhost:5000/swagger` (or the equivalent HTTPS port mapped in your environment)
+* `http://localhost:5029/swagger`
 
 ### 3. Frontend Setup (Angular)
 
-In a new terminal window, navigate to the frontend directory and install dependencies.
+In a second terminal window (keeping the .NET API running), navigate to the frontend directory (`tracker-ui`) and install dependencies.
 
 ```bash
-# Adjust directory name if it differs in your local environment
-cd ClientApp 
+cd tracker-ui
 npm install
 ```
 
@@ -86,4 +86,21 @@ Start the development server:
 ng serve
 ```
 
-Navigate to `http://localhost:4200/` in your browser. The application will automatically reload if you change any of the source files.
+Navigate to `http://localhost:4200/` in your browser. 
+
+**CRITICAL: CORS & Browser Caching**
+During local development, browsers like Chrome aggressively cache CORS preflight (OPTIONS) requests. If you encounter persistent CORS errors despite backend configuration, **you must run your frontend in an Incognito/Private window** to bypass this local cache.
+
+### 4. Troubleshooting
+
+If the Angular frontend exhibits strange behavior or fails to build after pulling new changes:
+
+1. Wipe the `node_modules` and the `.angular` cache.
+2. Reinstall dependencies.
+
+```bash
+rm -rf node_modules
+rm -rf .angular
+npm cache clean --force
+npm install
+```
