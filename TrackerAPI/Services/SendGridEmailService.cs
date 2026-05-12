@@ -18,8 +18,11 @@ namespace TrackerAPI.Services
         public async Task SendEmailAsync(string toEmail, string subject, string content)
         {
             var apiKey = _configuration["SendGrid:ApiKey"];
+            var fromEmail = _configuration["SendGrid:FromEmail"];
+            var fromName = _configuration["SendGrid:FromName"];
+
             var client = new SendGridClient(apiKey);
-            var from = new EmailAddress("nairbharathofficial@gmail.com", "Shadow Board Tracker");
+            var from = new EmailAddress(fromEmail, fromName);
             var to = new EmailAddress(toEmail);
             
             // Send email as HTML

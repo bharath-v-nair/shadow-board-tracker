@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
+using TrackerAPI.Interfaces;
 
 namespace TrackerAPI.Controllers
 {
@@ -16,10 +18,14 @@ namespace TrackerAPI.Controllers
     public class IncidentsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<IncidentsController> _logger;
 
-        public IncidentsController(ApplicationDbContext context)
+        public IncidentsController(ApplicationDbContext context, IEmailService emailService, ILogger<IncidentsController> logger)
         {
             _context = context;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -47,6 +53,9 @@ namespace TrackerAPI.Controllers
                 return NotFound();
             }
 
+            var tool = await _context.Tools.FindAsync(incident.ToolId);
+            var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
+
             return new IncidentDto
             {
                 Id = incident.Id,
@@ -54,7 +63,9 @@ namespace TrackerAPI.Controllers
                 WorkerId = incident.WorkerId,
                 ReportedAt = incident.ReportedAt,
                 ResolvedAt = incident.ResolvedAt,
-                Status = incident.Status
+                Status = incident.Status,
+                ToolName = tool?.Name,
+                BoardName = board?.Name
             };
         }
 
@@ -73,6 +84,29 @@ namespace TrackerAPI.Controllers
 
             _context.Incidents.Add(incident);
             await _context.SaveChangesAsync();
+
+            try
+            {
+                var worker = await _context.Workers.FindAsync(incident.WorkerId);
+                var tool = await _context.Tools.FindAsync(incident.ToolId);
+                var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
+
+                if (worker != null && tool != null && board != null)
+                {
+                    var subject = "New Task Assigned: Missing Tool";
+                    var link = $"http://localhost:4200/incident/{incident.Id}";
+                    var body = $"<p>A new missing tool incident has been assigned to you.</p>" +
+                               $"<p><strong>Tool:</strong> {tool.Name}</p>" +
+                               $"<p><strong>Board:</strong> {board.Name}</p>" +
+                               $"<p><a href='{link}'>Click here to view and resolve the incident</a></p>";
+
+                    await _emailService.SendEmailAsync(worker.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send assignment email for incident {IncidentId}", incident.Id);
+            }
 
             var incidentDto = new IncidentDto
             {
@@ -121,6 +155,29 @@ namespace TrackerAPI.Controllers
             }
 
             _context.Incidents.Remove(incident);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [AllowAnonymous]
+        [HttpPatch("{id}/resolve")]
+        public async Task<IActionResult> ResolveIncident(Guid id)
+        {
+            var incident = await _context.Incidents.FindAsync(id);
+            if (incident == null)
+            {
+                return NotFound();
+            }
+
+            if (incident.Status != IncidentStatus.Open)
+            {
+                return BadRequest("Incident is not open.");
+            }
+
+            incident.Status = IncidentStatus.PendingReview;
+            incident.ResolvedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             return NoContent();
