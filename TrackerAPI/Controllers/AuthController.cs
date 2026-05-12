@@ -94,7 +94,8 @@ namespace TrackerAPI.Controllers
                 {
                     new Claim(ClaimTypes.NameIdentifier, worker.Id.ToString()),
                     new Claim(ClaimTypes.Email, worker.Email),
-                    new Claim(ClaimTypes.Name, worker.Name)
+                    new Claim(ClaimTypes.Name, worker.Name),
+                    new Claim(ClaimTypes.Role, worker.Role)
                 }),
                 Expires = DateTime.UtcNow.AddHours(8),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature)

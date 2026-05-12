@@ -50,6 +50,10 @@ export class ApiService {
     return this.http.get<any>(`${this.apiUrl}/incidents/${id}`);
   }
 
+  getIncidents(): Observable<Incident[]> {
+    return this.http.get<Incident[]>(`${this.apiUrl}/incidents`);
+  }
+
   resolveIncident(id: string): Observable<any> {
     return this.http.patch(`${this.apiUrl}/incidents/${id}/resolve`, {});
   }

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { Board } from '../../models/board.model';
 import { Tool } from '../../models/tool.model';
+import { Incident } from '../../models/incident.model';
 import { ReportDialogComponent } from '../report-dialog/report-dialog.component';
 
 @Component({
@@ -66,8 +68,17 @@ import { ReportDialogComponent } from '../report-dialog/report-dialog.component'
                 </div>
                 
                 <div matListItemLine class="text-sm" [ngClass]="{'text-red-500': isMissing(tool), 'text-gray-500': !isMissing(tool)}">
-                  Type: {{ tool.type }} • Condition: {{ tool.condition }}
+                  Type: {{ tool.type }} • Condition: {{ isMissing(tool) ? 'Missing' : tool.condition }}
                 </div>
+                
+                @if (isMissing(tool) && getActiveIncident(tool.id)) {
+                  <div matListItemLine class="mt-1">
+                    <div class="inline-flex flex-col text-xs text-gray-500 border-l-2 border-red-400 pl-2 py-1">
+                      <span>Reported by <strong>{{ getActiveIncident(tool.id)?.reporterName || 'Unknown' }}</strong> on {{ getActiveIncident(tool.id)?.reportedAt | date:'short' }}</span>
+                      <span>Assigned to: <strong>{{ getActiveIncident(tool.id)?.workerName || 'Unknown' }}</strong></span>
+                    </div>
+                  </div>
+                }
                 
                 <button mat-icon-button matListItemMeta *ngIf="!isMissing(tool)" color="warn" (click)="onToolClick(tool); $event.stopPropagation()">
                   <mat-icon>report_problem</mat-icon>
@@ -95,6 +106,7 @@ export class BoardDetailComponent implements OnInit {
 
   board = signal<Board | null>(null);
   tools = signal<Tool[]>([]);
+  incidents = signal<Incident[]>([]);
   loading = signal<boolean>(true);
 
   ngOnInit() {
@@ -108,10 +120,14 @@ export class BoardDetailComponent implements OnInit {
 
   fetchBoardDetails(id: string) {
     this.loading.set(true);
-    this.api.getBoardWithTools(id).subscribe({
+    forkJoin({
+      boardData: this.api.getBoardWithTools(id),
+      incidents: this.api.getIncidents()
+    }).subscribe({
       next: (data) => {
-        this.board.set(data.board);
-        this.tools.set(data.tools);
+        this.board.set(data.boardData.board);
+        this.tools.set(data.boardData.tools);
+        this.incidents.set(data.incidents);
         this.loading.set(false);
       },
       error: (err) => {
@@ -122,8 +138,12 @@ export class BoardDetailComponent implements OnInit {
     });
   }
 
+  getActiveIncident(toolId: string): Incident | undefined {
+    return this.incidents().find(i => i.toolId === toolId && (i.status === 'Open' || i.status === 0 as any));
+  }
+
   isMissing(tool: Tool): boolean {
-    return tool.condition === 'Missing' || tool.condition === 'Lost';
+    return tool.condition === 'Missing' || tool.condition === 'Lost' || !!this.getActiveIncident(tool.id);
   }
 
   onToolClick(tool: Tool) {
@@ -147,6 +167,10 @@ export class BoardDetailComponent implements OnInit {
           return t;
         });
         this.tools.set(updatedTools);
+        
+        // Push the new incident to state so UI metadata updates instantly
+        this.incidents.update(incidents => [...incidents, incident]);
+        
         this.snackBar.open('Incident reported successfully!', 'Close', { duration: 3000 });
       }
     });

@@ -6,6 +6,7 @@ using TrackerAPI.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
@@ -31,22 +32,31 @@ namespace TrackerAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<IncidentDto>>> GetIncidents()
         {
-            var incidents = await _context.Incidents.ToListAsync();
+            var incidents = await _context.Incidents
+                .Include(i => i.Reporter)
+                .Include(i => i.Worker)
+                .ToListAsync();
             return incidents.Select(i => new IncidentDto
             {
                 Id = i.Id,
                 ToolId = i.ToolId,
                 WorkerId = i.WorkerId,
+                ReporterId = i.ReporterId,
                 ReportedAt = i.ReportedAt,
                 ResolvedAt = i.ResolvedAt,
-                Status = i.Status
+                Status = i.Status,
+                ReporterName = i.Reporter?.Name,
+                WorkerName = i.Worker?.Name
             }).ToList();
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<IncidentDto>> GetIncident(Guid id)
         {
-            var incident = await _context.Incidents.FindAsync(id);
+            var incident = await _context.Incidents
+                .Include(i => i.Reporter)
+                .Include(i => i.Worker)
+                .FirstOrDefaultAsync(i => i.Id == id);
 
             if (incident == null)
             {
@@ -61,11 +71,14 @@ namespace TrackerAPI.Controllers
                 Id = incident.Id,
                 ToolId = incident.ToolId,
                 WorkerId = incident.WorkerId,
+                ReporterId = incident.ReporterId,
                 ReportedAt = incident.ReportedAt,
                 ResolvedAt = incident.ResolvedAt,
                 Status = incident.Status,
                 ToolName = tool?.Name,
-                BoardName = board?.Name
+                BoardName = board?.Name,
+                ReporterName = incident.Reporter?.Name,
+                WorkerName = incident.Worker?.Name
             };
         }
 
@@ -73,11 +86,27 @@ namespace TrackerAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<IncidentDto>> PostIncident(CreateIncidentDto createIncidentDto)
         {
+            var reporterIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(reporterIdClaim) || !Guid.TryParse(reporterIdClaim, out var reporterId))
+            {
+                return Unauthorized("Invalid token claims.");
+            }
+
+            var existingIncident = await _context.Incidents
+                .AnyAsync(i => i.ToolId == createIncidentDto.ToolId && 
+                              (i.Status == IncidentStatus.Open || i.Status == IncidentStatus.PendingReview));
+
+            if (existingIncident)
+            {
+                return BadRequest("An active incident already exists for this tool.");
+            }
+
             var incident = new Incident
             {
                 Id = Guid.NewGuid(),
                 ToolId = createIncidentDto.ToolId,
                 WorkerId = createIncidentDto.WorkerId,
+                ReporterId = reporterId,
                 Status = createIncidentDto.Status,
                 ReportedAt = DateTime.UtcNow
             };
@@ -113,6 +142,7 @@ namespace TrackerAPI.Controllers
                 Id = incident.Id,
                 ToolId = incident.ToolId,
                 WorkerId = incident.WorkerId,
+                ReporterId = incident.ReporterId,
                 ReportedAt = incident.ReportedAt,
                 ResolvedAt = incident.ResolvedAt,
                 Status = incident.Status

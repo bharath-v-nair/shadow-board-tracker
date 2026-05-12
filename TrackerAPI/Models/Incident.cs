@@ -7,6 +7,9 @@ namespace TrackerAPI.Models
         public Guid Id { get; set; }
         public Guid ToolId { get; set; }
         public Guid WorkerId { get; set; }
+        public Worker? Worker { get; set; }
+        public Guid ReporterId { get; set; }
+        public Worker? Reporter { get; set; }
         public DateTime ReportedAt { get; set; }
         public DateTime? ResolvedAt { get; set; }
         public IncidentStatus Status { get; set; } = IncidentStatus.Open;

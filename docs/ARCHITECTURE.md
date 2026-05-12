@@ -33,17 +33,19 @@ Represents an individual tool assigned to a specific board.
 * `BoardId` (Guid, FK to Board)
 
 **Worker**
-Represents a staff member who can be assigned recovery tasks.
+Represents a staff member who can be assigned recovery tasks or a QA inspector who reports them.
 * `Id` (Guid, PK)
 * `Name` (string)
 * `Email` (string)
 * `IsAvailable` (boolean) - Determines if a worker can be assigned a new incident.
+* `Role` (string) - Defines access level (e.g., "QA", "Worker").
 
 **Incident**
 Represents a missing tool report and its resolution state.
 * `Id` (Guid, PK)
 * `ToolId` (Guid, FK to Tool)
-* `WorkerId` (Guid, FK to Worker)
+* `WorkerId` (Guid, FK to Worker) - The worker assigned to resolve the issue.
+* `ReporterId` (Guid, FK to Worker) - The QA inspector who reported the issue.
 * `ReportedAt` (datetime)
 * `ResolvedAt` (datetime, nullable)
 * `Status` (enum: Open, Closed)
@@ -97,6 +99,9 @@ When an incident requires action, the system generates a secure, time-limited JW
 ### Data Seeding
 For reliable local testing of this authentication flow, our EF Core setup includes automated Data Seeding. Upon running database migrations, the system seeds an initial test Worker record. This ensures that developers can immediately test email dispatch and token validation without manual database setup.
 
+### RBAC & Claim Injection
+With V2, our JWT generation process now injects specific identity claims, including the user's `Role`. This enables robust Role-Based Access Control (RBAC) across our API, ensuring that only "QA" personnel can report incidents, while "Workers" can only resolve tasks assigned to them.
+
 ## Phase 4-7: Frontend Architecture & Integration
 
 Our client application is a modern Progressive Web App (PWA) built with Angular (v17+). It serves as the primary interface for QA inspectors on the factory floor.
@@ -115,3 +120,13 @@ The .NET backend is configured to accept cross-origin requests from the Angular 
 
 ### Hardware Integration
 We utilize `@zxing/ngx-scanner` for hardware-agnostic QR code scanning. This allows QA inspectors to use any mobile device camera via the browser without requiring native app wrappers.
+
+## Phase 8: V2 State & Tracking
+
+As the application matures, tracking precise physical inventory state and providing a seamless UI experience became paramount.
+
+### Instance Model for Tools
+We employ an "Instance Model" for our inventory. This means every physical tool on the factory floor is assigned a completely unique `Guid`, even if multiple tools share the exact same `Name` and `Type`. This prevents ambiguity during incident reporting and ensures precise audit trails.
+
+### Dynamic State Merging (Angular)
+The UI needs to accurately reflect both static tool data and real-time incident status. To achieve this without over-fetching, the Angular client leverages `forkJoin` (RxJS) to make parallel requests, then uses Signals to dynamically merge the `Tool`'s physical condition with any active `Incident` state. This reactive architecture guarantees the UI always displays the most accurate, up-to-date board status without complex state synchronization logic.

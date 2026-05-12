@@ -12,8 +12,11 @@ namespace TrackerAPI.DTOs
         public DateTime ReportedAt { get; set; }
         public DateTime? ResolvedAt { get; set; }
         public IncidentStatus Status { get; set; }
+        public Guid ReporterId { get; set; }
         public string? ToolName { get; set; }
         public string? BoardName { get; set; }
+        public string? ReporterName { get; set; }
+        public string? WorkerName { get; set; }
     }
 
     public class CreateIncidentDto

@@ -6,6 +6,10 @@ The Klipspringer Shadow Board Tracker is a Progressive Web App (PWA) designed to
 
 Upon reporting a missing tool, the system automatically assigns a recovery task to an available worker and dispatches a notification via email. Workers can seamlessly resolve and close these incidents using a secure "Magic Link" included in their email, requiring no authentication or login overhead.
 
+**V2 Features:**
+* **Role-Based Access Control (RBAC):** Secure differentiation between QA inspectors (who report issues) and Workers (who resolve them).
+* **Audit Trails:** Comprehensive tracking of who reported an incident and when it was resolved, ensuring accountability across the factory floor.
+
 ## Tech Stack
 
 **Frontend**
