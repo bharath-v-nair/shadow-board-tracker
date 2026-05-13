@@ -49,9 +49,14 @@ import { ApiService } from '../../services/api.service';
                 <p class="text-lg font-medium text-gray-900">{{ incident().boardName || 'Unknown Board' }}</p>
               </div>
 
-              <div class="mb-6">
+              <div class="mb-4">
                 <p class="text-sm text-gray-500 uppercase tracking-wider font-semibold">Reported At</p>
                 <p class="text-md text-gray-800">{{ incident().reportedAt | date:'medium' }}</p>
+              </div>
+
+              <div class="mb-6">
+                <p class="text-sm text-gray-500 uppercase tracking-wider font-semibold">QA Inspector</p>
+                <p class="text-lg font-medium text-gray-900">{{ incident().reporterName || 'Unknown' }}</p>
               </div>
 
               <button 

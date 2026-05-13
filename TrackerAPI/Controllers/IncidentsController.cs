@@ -117,6 +117,7 @@ namespace TrackerAPI.Controllers
             try
             {
                 var worker = await _context.Workers.FindAsync(incident.WorkerId);
+                var reporter = await _context.Workers.FindAsync(incident.ReporterId);
                 var tool = await _context.Tools.FindAsync(incident.ToolId);
                 var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
 
@@ -127,6 +128,7 @@ namespace TrackerAPI.Controllers
                     var body = $"<p>A new missing tool incident has been assigned to you.</p>" +
                                $"<p><strong>Tool:</strong> {tool.Name}</p>" +
                                $"<p><strong>Board:</strong> {board.Name}</p>" +
+                               $"<p><strong>Reported By:</strong> {reporter?.Name ?? "Unknown"}</p>" +
                                $"<p><a href='{link}'>Click here to view and resolve the incident</a></p>";
 
                     await _emailService.SendEmailAsync(worker.Email, subject, body);
@@ -209,6 +211,80 @@ namespace TrackerAPI.Controllers
             incident.ResolvedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [Authorize(Roles = "QA")]
+        [HttpPatch("{id}/verify")]
+        public async Task<IActionResult> VerifyIncident(Guid id)
+        {
+            var incident = await _context.Incidents.FindAsync(id);
+            if (incident == null)
+            {
+                return NotFound();
+            }
+
+            if (incident.Status != IncidentStatus.PendingReview)
+            {
+                return BadRequest("Incident is not pending review.");
+            }
+
+            incident.Status = IncidentStatus.Resolved;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [Authorize(Roles = "QA")]
+        [HttpPatch("{id}/reopen")]
+        public async Task<IActionResult> ReopenIncident(Guid id)
+        {
+            var incident = await _context.Incidents
+                .Include(i => i.Worker)
+                .Include(i => i.Reporter)
+                .FirstOrDefaultAsync(i => i.Id == id);
+                
+            if (incident == null)
+            {
+                return NotFound();
+            }
+
+            if (incident.Status != IncidentStatus.PendingReview)
+            {
+                return BadRequest("Incident is not pending review.");
+            }
+
+            incident.Status = IncidentStatus.Open;
+            incident.ResolvedAt = null;
+
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                var tool = await _context.Tools.FindAsync(incident.ToolId);
+                var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
+                var worker = incident.Worker;
+                var reporter = incident.Reporter;
+
+                if (worker != null && tool != null && board != null)
+                {
+                    var subject = $"Action Required: QA Rejected Resolution for {tool.Name}";
+                    var link = $"http://localhost:4200/incident/{incident.Id}";
+                    var body = $"<p>A QA inspector has reviewed your resolution and rejected it. The tool is still missing.</p>" +
+                               $"<p><strong>Tool:</strong> {tool.Name}</p>" +
+                               $"<p><strong>Board:</strong> {board.Name}</p>" +
+                               $"<p><strong>Rejected By:</strong> {reporter?.Name ?? "Unknown"}</p>" +
+                               $"<p><a href='{link}'>Click here to view and resolve the incident again</a></p>";
+
+                    await _emailService.SendEmailAsync(worker.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send rejection email for incident {IncidentId}", incident.Id);
+            }
 
             return NoContent();
         }

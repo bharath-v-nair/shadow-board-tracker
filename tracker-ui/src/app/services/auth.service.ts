@@ -17,4 +17,15 @@ export class AuthService {
   clearToken(): void {
     localStorage.removeItem(this.TOKEN_KEY);
   }
+
+  isQA(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role === 'QA' || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] === 'QA';
+    } catch (e) {
+      return false;
+    }
+  }
 }

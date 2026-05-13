@@ -57,4 +57,12 @@ export class ApiService {
   resolveIncident(id: string): Observable<any> {
     return this.http.patch(`${this.apiUrl}/incidents/${id}/resolve`, {});
   }
+
+  verifyIncident(id: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/incidents/${id}/verify`, {});
+  }
+
+  reopenIncident(id: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/incidents/${id}/reopen`, {});
+  }
 }

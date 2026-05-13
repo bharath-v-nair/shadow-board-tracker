@@ -10,6 +10,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 import { Board } from '../../models/board.model';
 import { Tool } from '../../models/tool.model';
 import { Incident } from '../../models/incident.model';
@@ -56,31 +57,38 @@ import { ReportDialogComponent } from '../report-dialog/report-dialog.component'
             @for (tool of tools(); track tool.id; let last = $last) {
               <mat-list-item 
                 class="h-auto py-3 cursor-pointer transition-colors" 
-                [ngClass]="{'border-b': !last, 'bg-red-50 hover:bg-red-100': isMissing(tool), 'hover:bg-gray-50': !isMissing(tool)}"
+                [ngClass]="{'border-b': !last, 'bg-red-50 hover:bg-red-100': isMissing(tool), 'bg-yellow-50 hover:bg-yellow-100': isPendingReview(tool), 'hover:bg-gray-50': !isMissing(tool) && !isPendingReview(tool)}"
                 (click)="onToolClick(tool)">
                 
-                <mat-icon matListItemIcon [ngClass]="{'text-red-500': isMissing(tool), 'text-green-500': !isMissing(tool)}">
+                <mat-icon matListItemIcon [ngClass]="{'text-red-500': isMissing(tool), 'text-yellow-600': isPendingReview(tool), 'text-green-500': !isMissing(tool) && !isPendingReview(tool)}">
                   {{ tool.iconName || 'handyman' }}
                 </mat-icon>
                 
-                <div matListItemTitle class="font-medium" [ngClass]="{'text-red-700': isMissing(tool)}">
+                <div matListItemTitle class="font-medium" [ngClass]="{'text-red-700': isMissing(tool), 'text-yellow-700': isPendingReview(tool)}">
                   {{ tool.name }}
                 </div>
                 
-                <div matListItemLine class="text-sm" [ngClass]="{'text-red-500': isMissing(tool), 'text-gray-500': !isMissing(tool)}">
-                  Type: {{ tool.type }} • Condition: {{ isMissing(tool) ? 'Missing' : tool.condition }}
+                <div matListItemLine class="text-sm" [ngClass]="{'text-red-500': isMissing(tool), 'text-yellow-600': isPendingReview(tool), 'text-gray-500': !isMissing(tool) && !isPendingReview(tool)}">
+                  Type: {{ tool.type }} • Condition: {{ isMissing(tool) ? 'Missing' : (isPendingReview(tool) ? 'Pending QA Verification' : tool.condition) }}
                 </div>
                 
-                @if (isMissing(tool) && getActiveIncident(tool.id)) {
+                @if ((isMissing(tool) || isPendingReview(tool)) && getActiveIncident(tool.id)) {
                   <div matListItemLine class="mt-1">
-                    <div class="inline-flex flex-col text-xs text-gray-500 border-l-2 border-red-400 pl-2 py-1">
+                    <div class="inline-flex flex-col text-xs text-gray-500 border-l-2 py-1 pl-2" [ngClass]="{'border-red-400': isMissing(tool), 'border-yellow-400': isPendingReview(tool)}">
                       <span>Reported by <strong>{{ getActiveIncident(tool.id)?.reporterName || 'Unknown' }}</strong> on {{ getActiveIncident(tool.id)?.reportedAt | date:'short' }}</span>
                       <span>Assigned to: <strong>{{ getActiveIncident(tool.id)?.workerName || 'Unknown' }}</strong></span>
                     </div>
                   </div>
                 }
+
+                @if (isPendingReview(tool) && isQA) {
+                  <div matListItemLine class="mt-2 flex gap-2">
+                    <button mat-flat-button class="bg-green-600 text-white" (click)="onVerifyIncident(getActiveIncident(tool.id)!.id); $event.stopPropagation()">Verify & Close</button>
+                    <button mat-stroked-button color="warn" (click)="onReopenIncident(getActiveIncident(tool.id)!.id); $event.stopPropagation()">Reject & Reopen</button>
+                  </div>
+                }
                 
-                <button mat-icon-button matListItemMeta *ngIf="!isMissing(tool)" color="warn" (click)="onToolClick(tool); $event.stopPropagation()">
+                <button mat-icon-button matListItemMeta *ngIf="!isMissing(tool) && !isPendingReview(tool)" color="warn" (click)="onToolClick(tool); $event.stopPropagation()">
                   <mat-icon>report_problem</mat-icon>
                 </button>
               </mat-list-item>
@@ -101,8 +109,13 @@ export class BoardDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(ApiService);
+  private authService = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+
+  get isQA() {
+    return this.authService.isQA();
+  }
 
   board = signal<Board | null>(null);
   tools = signal<Tool[]>([]);
@@ -118,8 +131,10 @@ export class BoardDetailComponent implements OnInit {
     }
   }
 
-  fetchBoardDetails(id: string) {
-    this.loading.set(true);
+  fetchBoardDetails(id: string, showLoading: boolean = true) {
+    if (showLoading) {
+      this.loading.set(true);
+    }
     forkJoin({
       boardData: this.api.getBoardWithTools(id),
       incidents: this.api.getIncidents()
@@ -128,27 +143,62 @@ export class BoardDetailComponent implements OnInit {
         this.board.set(data.boardData.board);
         this.tools.set(data.boardData.tools);
         this.incidents.set(data.incidents);
-        this.loading.set(false);
+        if (showLoading) {
+          this.loading.set(false);
+        }
       },
       error: (err) => {
         console.error('Failed to fetch board details', err);
         this.snackBar.open('Failed to load board details', 'Close', { duration: 3000 });
-        this.loading.set(false);
+        if (showLoading) {
+          this.loading.set(false);
+        }
       }
     });
   }
 
   getActiveIncident(toolId: string): Incident | undefined {
-    return this.incidents().find(i => i.toolId === toolId && (i.status === 'Open' || i.status === 0 as any));
+    return this.incidents().find(i => i.toolId === toolId && i.status !== 'Resolved' && i.status !== 2 as any);
+  }
+
+  isPendingReview(tool: Tool): boolean {
+    const incident = this.getActiveIncident(tool.id);
+    return incident ? (incident.status === 'PendingReview' || incident.status === 1 as any) : false;
   }
 
   isMissing(tool: Tool): boolean {
-    return tool.condition === 'Missing' || tool.condition === 'Lost' || !!this.getActiveIncident(tool.id);
+    const incident = this.getActiveIncident(tool.id);
+    return tool.condition === 'Missing' || tool.condition === 'Lost' || (incident ? (incident.status === 'Open' || incident.status === 0 as any) : false);
+  }
+
+  onVerifyIncident(incidentId: string) {
+    this.api.verifyIncident(incidentId).subscribe({
+      next: () => {
+        this.incidents.update(incidents => incidents.filter(i => i.id !== incidentId));
+        this.snackBar.open('Incident verified and closed.', 'Close', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('Failed to verify incident', 'Close', { duration: 3000 })
+    });
+  }
+
+  onReopenIncident(incidentId: string) {
+    this.api.reopenIncident(incidentId).subscribe({
+      next: () => {
+        this.incidents.update(incidents => incidents.map(i => {
+          if (i.id === incidentId) {
+            return { ...i, status: 'Open' };
+          }
+          return i;
+        }));
+        this.snackBar.open('Incident rejected and reopened.', 'Close', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('Failed to reopen incident', 'Close', { duration: 3000 })
+    });
   }
 
   onToolClick(tool: Tool) {
-    if (this.isMissing(tool)) {
-      this.snackBar.open('This tool is already reported missing.', 'Close', { duration: 3000 });
+    if (this.isMissing(tool) || this.isPendingReview(tool)) {
+      this.snackBar.open('This tool already has an active incident.', 'Close', { duration: 3000 });
       return;
     }
 
@@ -159,18 +209,7 @@ export class BoardDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(incident => {
       if (incident) {
-        // Optimistically update the UI tool condition
-        const updatedTools = this.tools().map(t => {
-          if (t.id === tool.id) {
-            return { ...t, condition: 'Missing' };
-          }
-          return t;
-        });
-        this.tools.set(updatedTools);
-        
-        // Push the new incident to state so UI metadata updates instantly
-        this.incidents.update(incidents => [...incidents, incident]);
-        
+        this.fetchBoardDetails(this.board()!.id, false);
         this.snackBar.open('Incident reported successfully!', 'Close', { duration: 3000 });
       }
     });

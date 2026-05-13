@@ -130,3 +130,19 @@ We employ an "Instance Model" for our inventory. This means every physical tool 
 
 ### Dynamic State Merging (Angular)
 The UI needs to accurately reflect both static tool data and real-time incident status. To achieve this without over-fetching, the Angular client leverages `forkJoin` (RxJS) to make parallel requests, then uses Signals to dynamically merge the `Tool`'s physical condition with any active `Incident` state. This reactive architecture guarantees the UI always displays the most accurate, up-to-date board status without complex state synchronization logic.
+
+## Phase 9: Operations & The Maker-Checker Loop
+
+To ensure strict compliance on the factory floor, we implemented a Maker-Checker workflow. This pattern guarantees that a tool is only considered "returned" when physically verified by a QA Inspector.
+
+### Three-Tier State Machine
+Incidents now flow through a three-stage lifecycle:
+1. **Open (Red):** The tool is reported missing by QA. A Worker is assigned and notified.
+2. **PendingReview (Yellow):** The Worker has located the tool and marked the task as resolved. The UI visually indicates that QA verification is required.
+3. **Resolved/Closed (Green):** A QA Inspector physically verifies the tool is back on the board and permanently closes the incident. Alternatively, QA can **Reject** the resolution, reverting the state back to Open and notifying the Worker.
+
+### UI Role-Based Rendering
+The Angular application adapts its UI based on the authenticated user's identity. By decoding the JWT stored in the browser, the client inspects the user's `Role` claim. For incidents in the `PendingReview` state, the "Verify & Close" and "Reject & Reopen" action buttons are dynamically injected into the DOM *only* if the current user possesses the "QA" role. 
+
+### Silent Background Hydration
+When QA Inspectors or Workers interact with incident records, we often need relational data (like the `ReporterName` or `WorkerName`) that isn't stored directly on the base entity. To provide a seamless user experience, the Angular client leverages silent background refresh patterns. Upon loading an incident, the client fetches the latest relational projections from the API and updates its Signals without triggering disruptive, full-screen loading spinners (screen-flicker), maintaining the application's snappy, native-like feel.

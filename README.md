@@ -9,6 +9,7 @@ Upon reporting a missing tool, the system automatically assigns a recovery task 
 **V2 Features:**
 * **Role-Based Access Control (RBAC):** Secure differentiation between QA inspectors (who report issues) and Workers (who resolve them).
 * **Audit Trails:** Comprehensive tracking of who reported an incident and when it was resolved, ensuring accountability across the factory floor.
+* **Maker-Checker Verification Loop:** A strict workflow where Workers can mark tasks as resolved, but QA Inspectors must physically verify the tool and officially "Close" or "Reject" the resolution.
 
 ## Tech Stack
 
