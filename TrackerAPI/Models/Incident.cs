@@ -6,6 +6,7 @@ namespace TrackerAPI.Models
     {
         public Guid Id { get; set; }
         public Guid ToolId { get; set; }
+        public virtual Tool? Tool { get; set; }
         public Guid WorkerId { get; set; }
         public Worker? Worker { get; set; }
         public Guid ReporterId { get; set; }

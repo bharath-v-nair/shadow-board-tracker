@@ -17,6 +17,7 @@ namespace TrackerAPI.DTOs
         public string? BoardName { get; set; }
         public string? ReporterName { get; set; }
         public string? WorkerName { get; set; }
+        public Guid? BoardId { get; set; }
     }
 
     public class CreateIncidentDto

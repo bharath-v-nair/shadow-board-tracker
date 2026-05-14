@@ -65,4 +65,8 @@ export class ApiService {
   reopenIncident(id: string): Observable<any> {
     return this.http.patch(`${this.apiUrl}/incidents/${id}/reopen`, {});
   }
+
+  getAllGlobalIncidents(): Observable<Incident[]> {
+    return this.http.get<Incident[]>(`${this.apiUrl}/incidents/all`);
+  }
 }

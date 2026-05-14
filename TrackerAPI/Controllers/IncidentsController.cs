@@ -50,6 +50,34 @@ namespace TrackerAPI.Controllers
             }).ToList();
         }
 
+        [Authorize(Roles = "QA")]
+        [HttpGet("all")]
+        public async Task<ActionResult<IEnumerable<IncidentDto>>> GetAllIncidents()
+        {
+            var incidents = await _context.Incidents
+                .Include(i => i.Tool).ThenInclude(t => t.Board)
+                .Include(i => i.Reporter)
+                .Include(i => i.Worker)
+                .OrderByDescending(i => i.ReportedAt)
+                .ToListAsync();
+
+            return Ok(incidents.Select(i => new IncidentDto
+            {
+                Id = i.Id,
+                ToolId = i.ToolId,
+                WorkerId = i.WorkerId,
+                ReporterId = i.ReporterId,
+                ReportedAt = i.ReportedAt,
+                ResolvedAt = i.ResolvedAt,
+                Status = i.Status,
+                ToolName = i.Tool?.Name,
+                BoardName = i.Tool?.Board?.Name,
+                ReporterName = i.Reporter?.Name,
+                WorkerName = i.Worker?.Name,
+                BoardId = i.Tool?.BoardId
+            }));
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<IncidentDto>> GetIncident(Guid id)
         {

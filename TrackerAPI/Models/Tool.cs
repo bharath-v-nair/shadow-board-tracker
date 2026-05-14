@@ -10,5 +10,6 @@ namespace TrackerAPI.Models
         public string? IconName { get; set; }
         public string Condition { get; set; } = string.Empty;
         public Guid BoardId { get; set; }
+        public Board? Board { get; set; }
     }
 }
