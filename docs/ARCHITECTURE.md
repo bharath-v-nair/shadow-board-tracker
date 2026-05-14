@@ -146,3 +146,13 @@ The Angular application adapts its UI based on the authenticated user's identity
 
 ### Silent Background Hydration
 When QA Inspectors or Workers interact with incident records, we often need relational data (like the `ReporterName` or `WorkerName`) that isn't stored directly on the base entity. To provide a seamless user experience, the Angular client leverages silent background refresh patterns. Upon loading an incident, the client fetches the latest relational projections from the API and updates its Signals without triggering disruptive, full-screen loading spinners (screen-flicker), maintaining the application's snappy, native-like feel.
+
+## Phase 10: Mobile Operations Dashboard
+
+As QA operations moved entirely to the factory floor, the application required a dedicated, mobile-optimized triage center.
+
+### Mobile-First Tailwind Layout
+The UI shifted away from traditional desktop-heavy tables to a mobile-first Tailwind CSS container layout. Using responsive design principles, the dashboard focuses on vertical scrolling, large touch targets, and distinct visual hierarchy, ensuring QA Inspectors can comfortably operate the application one-handed on mobile devices.
+
+### Reactive State Slicing with Signals
+To maintain a snappy experience, the application fetches the entire incident state at once (resolving N+1 query issues on the backend via Eager Loading). The Angular frontend then utilizes `computed()` signals to slice this single, immutable global state array into reactive, color-coded tabs (Pending, Open, Resolved). This guarantees that as incidents change state (e.g., from Open to Pending Review), they instantly and automatically animate between tabs without requiring expensive re-renders or additional network calls.
