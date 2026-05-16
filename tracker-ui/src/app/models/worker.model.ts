@@ -3,6 +3,7 @@ export interface Worker {
   name: string;
   email: string;
   isAvailable: boolean;
+  isOnShift: boolean;
   magicLinkToken?: string;
   magicLinkTokenExpiresAt?: string | Date;
 }

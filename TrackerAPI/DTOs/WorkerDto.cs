@@ -9,6 +9,7 @@ namespace TrackerAPI.DTOs
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public bool IsAvailable { get; set; }
+        public bool IsOnShift { get; set; }
     }
 
     public class CreateWorkerDto

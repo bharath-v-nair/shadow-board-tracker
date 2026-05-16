@@ -156,3 +156,16 @@ The UI shifted away from traditional desktop-heavy tables to a mobile-first Tail
 
 ### Reactive State Slicing with Signals
 To maintain a snappy experience, the application fetches the entire incident state at once (resolving N+1 query issues on the backend via Eager Loading). The Angular frontend then utilizes `computed()` signals to slice this single, immutable global state array into reactive, color-coded tabs (Pending, Open, Resolved). This guarantees that as incidents change state (e.g., from Open to Pending Review), they instantly and automatically animate between tabs without requiring expensive re-renders or additional network calls.
+
+## Phase 11: UI Shell & Roster Management
+
+As the tool scaled to manage a larger workforce, managing shift rosters and providing a unified navigation experience became necessary.
+
+### RESTful Query Parameters & Deferred Execution
+We transitioned our API layer from rigid, single-purpose endpoints to flexible resource querying. By introducing `[FromQuery]` parameters (such as `role` and `isOnShift`) on the `WorkersController`, clients can dynamically shape their requests. On the backend, we leverage EF Core's `IQueryable` to defer execution, appending SQL `WHERE` clauses dynamically before the final database trip, ensuring highly optimized SQL generation regardless of the filter combination.
+
+### UI Shell & Admin Navigation
+To improve the user experience and support global navigation, the Angular application's routing was refactored into a Parent-Child structure. A unified `LayoutComponent` now acts as the application shell, maintaining a persistent bottom navigation bar. We also implemented an administrative "QA Menu" using Angular Material's Bottom Sheet (`MatBottomSheet`), providing quick access to the user profile and shift management tools without cluttering the main dashboard.
+
+### Data Integrity & Audit Protection
+With the introduction of shift management, worker turnover or profile deletion became a possibility. To protect our stringent audit trails, we explicitly configured the EF Core relationship between the `Incident` entity and its `Worker` and `Reporter` foreign keys with `DeleteBehavior.Restrict`. This enforces data integrity at the SQL level, preventing cascading deletes and ensuring that historical incident records are never orphaned or erased if a worker profile is removed.

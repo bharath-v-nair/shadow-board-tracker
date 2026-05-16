@@ -27,6 +27,21 @@ namespace TrackerAPI.Data
                     IsAvailable = true
                 }
             );
+
+            //Configure the worker relationship
+            modelBuilder.Entity<Incident>()
+            .HasOne(i => i.Worker)
+            .WithMany()
+            .HasForeignKey(i => i.WorkerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+            //Configure the Reporter relationship
+            modelBuilder.Entity<Incident>()
+            .HasOne(i => i.Reporter)
+            .WithMany()
+            .HasForeignKey(i => i.ReporterId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }

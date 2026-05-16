@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Board } from '../models/board.model';
@@ -34,8 +34,19 @@ export class ApiService {
     });
   }
 
-  getWorkers(): Observable<Worker[]> {
-    return this.http.get<Worker[]>(`${this.apiUrl}/workers`);
+  getWorkers(role?: string, isOnShift?: boolean): Observable<Worker[]> {
+    let params = new HttpParams();
+    if (role) {
+      params = params.set('role', role);
+    }
+    if (isOnShift !== undefined) {
+      params = params.set('isOnShift', isOnShift);
+    }
+    return this.http.get<Worker[]>(`${this.apiUrl}/workers`, { params });
+  }
+
+  toggleWorkerShift(workerId: string): Observable<Worker> {
+    return this.http.patch<Worker>(`${this.apiUrl}/workers/${workerId}/shift`, {});
   }
 
   createIncident(incident: CreateIncidentDto): Observable<Incident> {

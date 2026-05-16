@@ -14,11 +14,11 @@ import { Tool } from '../../models/tool.model';
   selector: 'app-report-dialog',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
-    MatDialogModule, 
-    MatButtonModule, 
-    MatSelectModule, 
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatSelectModule,
     MatFormFieldModule,
     MatProgressSpinnerModule
   ],
@@ -66,11 +66,24 @@ export class ReportDialogComponent implements OnInit {
   submitting = signal<boolean>(false);
   selectedWorkerId: string = '';
 
+  // ngOnInit() {
+  //   this.api.getWorkers().subscribe({
+  //     next: (allWorkers) => {
+  //       const availableWorkers = allWorkers.filter(w => w.isAvailable);
+  //       this.workers.set(availableWorkers);
+  //       this.loading.set(false);
+  //     },
+  //     error: (err) => {
+  //       console.error('Failed to fetch workers', err);
+  //       this.loading.set(false);
+  //     }
+  //   });
+  // }
+
   ngOnInit() {
-    this.api.getWorkers().subscribe({
-      next: (allWorkers) => {
-        const availableWorkers = allWorkers.filter(w => w.isAvailable);
-        this.workers.set(availableWorkers);
+    this.api.getWorkers('Worker', true).subscribe({
+      next: (data) => {
+        this.workers.set(data);
         this.loading.set(false);
       },
       error: (err) => {
@@ -82,9 +95,9 @@ export class ReportDialogComponent implements OnInit {
 
   reportMissing() {
     if (!this.selectedWorkerId) return;
-    
+
     this.submitting.set(true);
-    
+
     const payload = {
       toolId: this.data.tool.id,
       workerId: this.selectedWorkerId,

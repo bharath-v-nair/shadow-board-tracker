@@ -24,15 +24,28 @@ namespace TrackerAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<WorkerDto>>> GetWorkers()
+        public async Task<ActionResult<IEnumerable<WorkerDto>>> GetWorkers([FromQuery] string? role, [FromQuery] bool? isOnShift)
         {
-            var workers = await _context.Workers.ToListAsync();
+            var query = _context.Workers.AsQueryable();
+
+            if (!string.IsNullOrEmpty(role))
+            {
+                query = query.Where(w => w.Role == role);
+            }
+
+            if (isOnShift.HasValue)
+            {
+                query = query.Where(w => w.IsOnShift == isOnShift.Value);
+            }
+
+            var workers = await query.ToListAsync();
             return workers.Select(w => new WorkerDto
             {
                 Id = w.Id,
                 Name = w.Name,
                 Email = w.Email,
-                IsAvailable = w.IsAvailable
+                IsAvailable = w.IsAvailable,
+                IsOnShift = w.IsOnShift
             }).ToList();
         }
 
@@ -51,7 +64,8 @@ namespace TrackerAPI.Controllers
                 Id = worker.Id,
                 Name = worker.Name,
                 Email = worker.Email,
-                IsAvailable = worker.IsAvailable
+                IsAvailable = worker.IsAvailable,
+                IsOnShift = worker.IsOnShift
             };
         }
 
@@ -74,7 +88,8 @@ namespace TrackerAPI.Controllers
                 Id = worker.Id,
                 Name = worker.Name,
                 Email = worker.Email,
-                IsAvailable = worker.IsAvailable
+                IsAvailable = worker.IsAvailable,
+                IsOnShift = worker.IsOnShift
             };
 
             return CreatedAtAction(nameof(GetWorker), new { id = worker.Id }, workerDto);
@@ -116,6 +131,29 @@ namespace TrackerAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        [HttpPatch("{id}/shift")]
+        [Authorize(Roles = "QA")]
+        public async Task<ActionResult<WorkerDto>> ToggleShift(Guid id)
+        {
+            var worker = await _context.Workers.FindAsync(id);
+            if (worker == null)
+            {
+                return NotFound();
+            }
+
+            worker.IsOnShift = !worker.IsOnShift;
+            await _context.SaveChangesAsync();
+
+            return Ok(new WorkerDto
+            {
+                Id = worker.Id,
+                Name = worker.Name,
+                Email = worker.Email,
+                IsAvailable = worker.IsAvailable,
+                IsOnShift = worker.IsOnShift
+            });
         }
     }
 }
