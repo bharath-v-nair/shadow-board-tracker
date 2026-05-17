@@ -169,3 +169,20 @@ To improve the user experience and support global navigation, the Angular applic
 
 ### Data Integrity & Audit Protection
 With the introduction of shift management, worker turnover or profile deletion became a possibility. To protect our stringent audit trails, we explicitly configured the EF Core relationship between the `Incident` entity and its `Worker` and `Reporter` foreign keys with `DeleteBehavior.Restrict`. This enforces data integrity at the SQL level, preventing cascading deletes and ensuring that historical incident records are never orphaned or erased if a worker profile is removed.
+
+## Phase 12: PWA-Optimized OTP Authentication
+
+As the application matured into a fully installed PWA, a critical UX flaw in our original authentication system was identified and resolved.
+
+### The Magic Link Problem: Mobile OS Context-Switching
+The original Magic Link flow sent users a URL via email. On a mobile device with the PWA installed, clicking this link would launch the device's default browser instead of routing back into the installed app shell. This context-switch broke the immersive PWA experience, left users stranded in a browser tab, and required manual navigation back to the installed application. This was deemed unacceptable for a factory-floor tool that must operate with minimal friction.
+
+### The Architectural Pivot: 6-Digit OTP
+We replaced the Magic Link flow with a two-step, in-app OTP (One-Time Password) system. The backend now generates a secure 6-digit numeric code (instead of a token URL), persists it with a 15-minute TTL, and dispatches it via SendGrid. The user reads the code from their email notification and types it directly into the PWA without ever leaving the app. The JWT is then issued in response to a successful OTP verification, maintaining full security with a dramatically improved UX.
+
+### Signal-Based Login State Machine
+The entire authentication flow is managed by a single `LoginComponent` driven by an Angular Signal-based state machine. A `currentView` signal controls which UI panel is rendered, transitioning cleanly between two stages:
+1. **`email`:** The user enters their registered email address and requests an OTP.
+2. **`otp`:** The OTP input panel is displayed. Upon successful verification, the JWT is persisted and the user is redirected into the application.
+
+This approach keeps all authentication logic within one component, avoids route changes during the flow, and ensures the user never exits the PWA shell.

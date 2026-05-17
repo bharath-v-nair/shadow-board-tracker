@@ -12,6 +12,7 @@ Upon reporting a missing tool, the system automatically assigns a recovery task 
 * **Maker-Checker Verification Loop:** A strict workflow where Workers can mark tasks as resolved, but QA Inspectors must physically verify the tool and officially "Close" or "Reject" the resolution.
 * **Mobile-First QA Command Center:** A streamlined dashboard featuring real-time triage, aging incident tracking (MTTR metrics), and color-coded status tabs for rapid on-the-floor operations.
 * **Real-Time Shift Management:** Tracks physical worker presence via a shift roster to optimize task assignments, ensuring incidents are only routed to staff currently active on the factory floor.
+* **PWA-Optimized OTP Authentication:** A passwordless, invite-only authentication system using a 6-digit OTP code delivered via email. Designed specifically to keep users inside the installed PWA shell, eliminating the mobile OS context-switch that magic links force when they open the default browser.
 
 ## Tech Stack
 
