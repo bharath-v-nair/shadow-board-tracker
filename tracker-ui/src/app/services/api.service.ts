@@ -53,8 +53,12 @@ export class ApiService {
     return this.http.post<Incident>(`${this.apiUrl}/incidents`, incident);
   }
 
-  verifyMagicLink(token: string): Observable<{ token: string }> {
-    return this.http.post<{ token: string }>(`${this.apiUrl}/auth/verify`, { token });
+  verifyMagicLink(email: string, token: string): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`${this.apiUrl}/auth/verify`, { email, token });
+  }
+
+  requestMagicLink(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/request-link`, { email });
   }
 
   getIncident(id: string): Observable<any> {

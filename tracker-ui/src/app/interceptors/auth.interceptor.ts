@@ -21,8 +21,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         authService.clearToken();
-        // Redirect to dashboard where the user can scan/login again
-        router.navigate(['/']);
+        router.navigate(['/login']);
       }
       return throwError(() => error);
     })
