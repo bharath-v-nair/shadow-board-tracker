@@ -19,6 +19,7 @@ namespace TrackerAPI.Controllers
 
     public class VerifyTokenDto
     {
+        public string Email { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
     }
 
@@ -48,27 +49,26 @@ namespace TrackerAPI.Controllers
                 return Ok(new { message = "If the email exists, a magic link has been sent." });
             }
 
-            // Generate secure random token
-            var token = Guid.NewGuid().ToString("N");
+            // Generate 6-digit OTP
+            var token = Random.Shared.Next(100000, 999999).ToString();
             
             // Save token and 15-minute expiration
             worker.MagicLinkToken = token;
             worker.MagicLinkTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
             await _context.SaveChangesAsync();
 
-            // Send email
-            var magicLinkUrl = $"http://localhost:4200/auth/verify?token={token}";
-            var emailBody = $"<p>Click the link below to log in to the Shadow Board Tracker:</p><p><a href='{magicLinkUrl}'>Login Now</a></p><p>This link expires in 15 minutes.</p>";
+            // Send OTP email
+            var emailBody = $"<p>Your Shadow Board Tracker login code is:</p><h2 style='font-size:32px;letter-spacing:8px;font-family:monospace;color:#2563eb'>{token}</h2><p>Enter this code in the app. It expires in <strong>15 minutes</strong>.</p><p>If you did not request this, you can safely ignore this email.</p>";
             
-            await _emailService.SendEmailAsync(worker.Email, "Your Shadow Board Tracker Login Link", emailBody);
+            await _emailService.SendEmailAsync(worker.Email, "Your Shadow Board Tracker Login Code", emailBody);
 
-            return Ok(new { message = "If the email exists, a magic link has been sent." });
+            return Ok(new { message = "If the email exists, a login code has been sent." });
         }
 
         [HttpPost("verify")]
         public async Task<IActionResult> Verify(VerifyTokenDto request)
         {
-            var worker = await _context.Workers.FirstOrDefaultAsync(w => w.MagicLinkToken == request.Token);
+            var worker = await _context.Workers.FirstOrDefaultAsync(w => w.Email == request.Email && w.MagicLinkToken == request.Token);
 
             if (worker == null || worker.MagicLinkTokenExpiresAt < DateTime.UtcNow)
             {
