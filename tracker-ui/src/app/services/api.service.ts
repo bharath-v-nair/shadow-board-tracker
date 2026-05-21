@@ -1,9 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { Board } from '../models/board.model';
-import { Tool } from '../models/tool.model';
+import { Tool, CreateToolPayload, UpdateToolPayload } from '../models/tool.model';
 import { Worker } from '../models/worker.model';
 import { CreateIncidentDto, Incident } from '../models/incident.model';
 import { environment } from '../../environments/environment';
@@ -15,6 +14,7 @@ export class ApiService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
+  // ── Boards ──────────────────────────────────────────────
   getBoards(): Observable<Board[]> {
     return this.http.get<Board[]>(`${this.apiUrl}/boards`);
   }
@@ -23,17 +23,55 @@ export class ApiService {
     return this.http.get<Board>(`${this.apiUrl}/boards/${id}`);
   }
 
-  getTools(): Observable<Tool[]> {
-    return this.http.get<Tool[]>(`${this.apiUrl}/tools`);
+  createBoard(payload: { name: string; location: string; qrCodeUrl?: string }): Observable<Board> {
+    return this.http.post<Board>(`${this.apiUrl}/boards`, payload);
+  }
+
+  updateBoard(id: string, payload: { id: string; name: string; location: string; qrCodeUrl?: string }): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/boards/${id}`, payload);
+  }
+
+  deleteBoard(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/boards/${id}`);
+  }
+
+  // ── Tools ────────────────────────────────────────────────
+  getTools(boardId?: string): Observable<Tool[]> {
+    let params = new HttpParams();
+    if (boardId) {
+      params = params.set('boardId', boardId);
+    }
+    return this.http.get<Tool[]>(`${this.apiUrl}/tools`, { params });
+  }
+
+  getToolTypes(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/tools/types`);
+  }
+
+  getToolNames(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/tools/names`);
+  }
+
+  createTool(payload: CreateToolPayload): Observable<Tool> {
+    return this.http.post<Tool>(`${this.apiUrl}/tools`, payload);
+  }
+
+  updateTool(id: string, payload: UpdateToolPayload): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/tools/${id}`, payload);
+  }
+
+  deleteTool(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/tools/${id}`);
   }
 
   getBoardWithTools(id: string): Observable<{ board: Board; tools: Tool[] }> {
     return forkJoin({
       board: this.getBoard(id),
-      tools: this.getTools().pipe(map(tools => tools.filter(t => t.boardId === id)))
+      tools: this.getTools(id)
     });
   }
 
+  // ── Workers ──────────────────────────────────────────────
   getWorkers(role?: string, isOnShift?: boolean): Observable<Worker[]> {
     let params = new HttpParams();
     if (role) {
@@ -49,16 +87,9 @@ export class ApiService {
     return this.http.patch<Worker>(`${this.apiUrl}/workers/${workerId}/shift`, {});
   }
 
+  // ── Incidents ────────────────────────────────────────────
   createIncident(incident: CreateIncidentDto): Observable<Incident> {
     return this.http.post<Incident>(`${this.apiUrl}/incidents`, incident);
-  }
-
-  verifyMagicLink(email: string, token: string): Observable<{ token: string }> {
-    return this.http.post<{ token: string }>(`${this.apiUrl}/auth/verify`, { email, token });
-  }
-
-  requestMagicLink(email: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/auth/request-link`, { email });
   }
 
   getIncident(id: string): Observable<any> {
@@ -84,4 +115,15 @@ export class ApiService {
   getAllGlobalIncidents(): Observable<Incident[]> {
     return this.http.get<Incident[]>(`${this.apiUrl}/incidents/all`);
   }
+
+  // ── Auth ─────────────────────────────────────────────────
+  verifyMagicLink(email: string, token: string): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`${this.apiUrl}/auth/verify`, { email, token });
+  }
+
+  requestMagicLink(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/request-link`, { email });
+  }
 }
+
+

@@ -24,7 +24,7 @@ namespace TrackerAPI.DTOs
         public string? IconName { get; set; }
 
         [Required]
-        [RegularExpression("^(Good|Defective|Lost)$", ErrorMessage = "Condition must be 'Good', 'Defective', or 'Lost'")]
+        [RegularExpression("^(Good|Damaged|Lost)$", ErrorMessage = "Condition must be 'Good', 'Damaged', or 'Lost'")]
         public string Condition { get; set; } = string.Empty;
 
         [Required]
@@ -45,7 +45,7 @@ namespace TrackerAPI.DTOs
         public string? IconName { get; set; }
 
         [Required]
-        [RegularExpression("^(Good|Defective|Lost)$", ErrorMessage = "Condition must be 'Good', 'Defective', or 'Lost'")]
+        [RegularExpression("^(Good|Damaged|Lost)$", ErrorMessage = "Condition must be 'Good', 'Damaged', or 'Lost'")]
         public string Condition { get; set; } = string.Empty;
 
         [Required]

@@ -22,9 +22,13 @@ namespace TrackerAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ToolDto>>> GetTools()
+        public async Task<ActionResult<IEnumerable<ToolDto>>> GetTools([FromQuery] Guid? boardId)
         {
-            var tools = await _context.Tools.ToListAsync();
+            var query = _context.Tools.AsQueryable();
+            if (boardId.HasValue)
+                query = query.Where(t => t.BoardId == boardId.Value);
+
+            var tools = await query.ToListAsync();
             return tools.Select(t => new ToolDto
             {
                 Id = t.Id,
@@ -34,6 +38,28 @@ namespace TrackerAPI.Controllers
                 Condition = t.Condition,
                 BoardId = t.BoardId
             }).ToList();
+        }
+
+        [HttpGet("types")]
+        public async Task<ActionResult<IEnumerable<string>>> GetToolTypes()
+        {
+            var types = await _context.Tools
+                .Select(t => t.Type)
+                .Distinct()
+                .OrderBy(t => t)
+                .ToListAsync();
+            return Ok(types);
+        }
+
+        [HttpGet("names")]
+        public async Task<ActionResult<IEnumerable<string>>> GetToolNames()
+        {
+            var names = await _context.Tools
+                .Select(t => t.Name)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToListAsync();
+            return Ok(names);
         }
 
         [HttpGet("{id}")]

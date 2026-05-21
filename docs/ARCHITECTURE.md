@@ -29,7 +29,7 @@ Represents an individual tool assigned to a specific board.
 * `Name` (string)
 * `Type` (string)
 * `IconName` (string, nullable) - Reference for frontend UI mapping.
-* `Condition` (enum: Good, Defective, Lost)
+* `Condition` (enum: Good, Damaged, Lost)
 * `BoardId` (Guid, FK to Board)
 
 **Worker**
@@ -186,3 +186,18 @@ The entire authentication flow is managed by a single `LoginComponent` driven by
 2. **`otp`:** The OTP input panel is displayed. Upon successful verification, the JWT is persisted and the user is redirected into the application.
 
 This approach keeps all authentication logic within one component, avoids route changes during the flow, and ensures the user never exits the PWA shell.
+
+## Phase 13: UI Overhaul & JIT Data Fetching
+
+As the application moved into full production testing, the Board Detail UI was overhauled to improve usability and data accuracy.
+
+### Minimalist UI Design
+We replaced rigid Angular Material lists (`<mat-list>`) with a custom, Tailwind-driven Flexbox layout. To reduce visual fatigue, missing and pending tools are no longer highlighted with heavy red row backgrounds. Instead, we utilize subtle left accent borders (`border-l-4`) and tinted icon pills, reserving aggressive colors only for critical alerts. The "Add Tool" action was also moved from a floating FAB to a stroked button in the card header, correctly weighting its importance as an administrative setup action.
+
+### Just-In-Time (JIT) Autocomplete Architecture
+The "Add Tool" bottom sheet utilizes an autocomplete combobox for the tool name. Originally, this dropdown only suggested names of tools *already present* on the active board, rendering it useless for newly created, empty boards.
+
+To expose the global dictionary of tool names across the entire factory without suffering from stale cache issues, we implemented a **Just-In-Time (JIT) Fetch Architecture**:
+1. **Database Pushdown:** We created a `GET /api/tools/names` endpoint that leverages EF Core to execute `SELECT DISTINCT Name FROM Tools`. This pushes the heavy deduplication logic down to the SQL engine, returning a tiny payload of unique strings.
+2. **JIT UI Fetch:** Instead of downloading this list on application load (which would quickly become stale if another worker added a new tool), the Angular client fires this API call the exact millisecond the user taps the "Add Tool" button.
+3. **UI Locking:** To prevent double-clicks during this ~100ms network roundtrip, an `isOpeningSheet` Signal locks the UI, ensuring the bottom sheet only opens once the 100% fresh dictionary has been retrieved from the server.
