@@ -201,3 +201,32 @@ To expose the global dictionary of tool names across the entire factory without 
 1. **Database Pushdown:** We created a `GET /api/tools/names` endpoint that leverages EF Core to execute `SELECT DISTINCT Name FROM Tools`. This pushes the heavy deduplication logic down to the SQL engine, returning a tiny payload of unique strings.
 2. **JIT UI Fetch:** Instead of downloading this list on application load (which would quickly become stale if another worker added a new tool), the Angular client fires this API call the exact millisecond the user taps the "Add Tool" button.
 3. **UI Locking:** To prevent double-clicks during this ~100ms network roundtrip, an `isOpeningSheet` Signal locks the UI, ensuring the bottom sheet only opens once the 100% fresh dictionary has been retrieved from the server.
+
+## Phase 14: PWA & Network Infrastructure
+
+To deliver a true "native app" feel on the factory floor, the application was upgraded to a Progressive Web App (PWA) and the development networking infrastructure was formalized for physical device testing.
+
+### Service Worker Architecture
+The frontend integrates `@angular/service-worker` alongside a `manifest.webmanifest`. 
+* **The Web Manifest:** Instructs the mobile operating system (iOS/Android) to treat the application as a standalone entity. When a user taps "Add to Home Screen", the OS provisions an app icon and launches the application in a full-screen, chromeless window (hiding the URL bar and browser tabs).
+* **The Service Worker:** Acts as a background network proxy. During production (`ng build`), the Service Worker aggressively caches the Angular application bundles (HTML, CSS, JS). When the user launches the app from their home screen, the Service Worker intercepts the boot request and serves the cached files instantly from the device's storage, completely eliminating the network bottleneck and providing a native-like, instant launch experience.
+
+### Development Networking Architecture
+By default, development servers like `ng serve` and `dotnet run` bind strictly to `127.0.0.1` (`localhost`), which physically restricts traffic to the host machine's internal loopback interface.
+
+To support live testing on physical mobile hardware (such as scanning QR codes with a real Android camera), both tiers of the application must break out of this loopback constraint:
+1. **Wildcard IP Binding (`0.0.0.0`):** Both the .NET Web API and the Angular development server are executed with explicit host bindings (`--urls "http://0.0.0.0:5029"` and `--host 0.0.0.0`). The `0.0.0.0` wildcard IP commands the servers to accept incoming traffic across *all* available network interfaces on the host machine, including the local Wi-Fi IP address.
+2. **Environment Re-Routing:** The Angular `environment.ts` file must be updated to direct outgoing API calls to the Mac's physical Wi-Fi IP (e.g., `192.168.1.2:5029`) instead of `localhost:5029`. If `localhost` is used, the mobile device will attempt to call an API hosted on the mobile device itself, resulting in connection refusals.
+
+### Service Worker Deferral Decision
+The Angular Service Worker (`@angular/service-worker`) is intentionally **not activated** during the development cycle. The `ng serve` command does not register the Service Worker by design — it only becomes active after a production build (`ng build`). Enabling it prematurely creates significant cache-invalidation problems that conflict with hot-module reloading and rapid iteration. The full offline caching configuration is **deferred to the final production deployment phase**.
+
+## Phase 15: Board & Tool CRUD Operations
+
+With the core incident workflow stabilized, administrative control over the inventory itself was introduced. QA Administrators can now manage the physical factory floor configuration directly from the application, without requiring database access.
+
+### Board Management
+A dedicated `BoardsListComponent` provides a full administrative view of all shadow boards in the system. QA Administrators can create new boards (specifying a name and location) and permanently delete boards they no longer need. All board mutations route through the existing `BoardsController`, which enforces `[Authorize(Roles = "QA")]` to restrict these destructive operations.
+
+### Tool Management (Within a Board)
+Within the `BoardDetailComponent`, QA Administrators can add new tool slots to a board using the existing Angular Material Bottom Sheet. The "Add Tool" flow leverages the **JIT Global Dictionary** (introduced in Phase 13) to populate the autocomplete with the full, deduplicated list of tool names from across the entire factory, ensuring naming consistency without manual cross-referencing. Administrators can also remove individual tool records from a board directly from the board detail view.
