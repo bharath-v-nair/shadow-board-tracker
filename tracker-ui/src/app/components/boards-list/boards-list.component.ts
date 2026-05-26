@@ -12,6 +12,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../services/api.service';
 import { Board } from '../../models/board.model';
 import { BoardBottomSheetComponent } from '../board-bottom-sheet/board-bottom-sheet.component';
+import { QrCustomizerDialogComponent } from '../qr-customizer-dialog/qr-customizer-dialog.component';
 
 @Component({
   selector: 'app-boards-list',
@@ -67,6 +68,10 @@ import { BoardBottomSheetComponent } from '../board-bottom-sheet/board-bottom-sh
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #boardMenu="matMenu">
+                  <button mat-menu-item (click)="onGenerateQr(board); $event.stopPropagation()">
+                    <mat-icon class="text-gray-600">qr_code_2</mat-icon>
+                    <span>Generate QR</span>
+                  </button>
                   <button mat-menu-item (click)="onEditBoard(board); $event.stopPropagation()">
                     <mat-icon>edit</mat-icon>
                     <span>Edit</span>
@@ -115,6 +120,7 @@ export class BoardsListComponent implements OnInit {
   private router = inject(Router);
   private bottomSheet = inject(MatBottomSheet);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   boards = signal<Board[]>([]);
   loading = signal<boolean>(true);
@@ -161,6 +167,26 @@ export class BoardsListComponent implements OnInit {
       if (updatedBoard) {
         this.boards.update(list => list.map(b => b.id === updatedBoard.id ? updatedBoard : b));
         this.snackBar.open('Board updated.', 'Close', { duration: 2500 });
+      }
+    });
+  }
+
+  // ── Generate QR ───────────────────────────────────────────
+  onGenerateQr(board: Board) {
+    const ref = this.dialog.open(QrCustomizerDialogComponent, {
+      data: board,
+      width: '800px',
+      maxWidth: '95vw',
+      panelClass: 'qr-dialog'
+    });
+    ref.afterClosed().subscribe((newConfig) => {
+      if (newConfig) {
+        this.boards.update(list => list.map(b => {
+          if (b.id === board.id) {
+             return { ...b, qrConfig: JSON.stringify(newConfig) };
+          }
+          return b;
+        }));
       }
     });
   }

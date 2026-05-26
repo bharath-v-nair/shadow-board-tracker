@@ -23,12 +23,16 @@ export class ApiService {
     return this.http.get<Board>(`${this.apiUrl}/boards/${id}`);
   }
 
-  createBoard(payload: { name: string; location: string; qrCodeUrl?: string }): Observable<Board> {
+  createBoard(payload: { name: string; location: string; qrConfig?: string }): Observable<Board> {
     return this.http.post<Board>(`${this.apiUrl}/boards`, payload);
   }
 
-  updateBoard(id: string, payload: { id: string; name: string; location: string; qrCodeUrl?: string }): Observable<void> {
+  updateBoard(id: string, payload: { id: string; name: string; location: string; qrConfig?: string }): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/boards/${id}`, payload);
+  }
+
+  updateBoardQrConfig(id: string, config: { size: number; showLabel: boolean }): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/boards/${id}/qr-config`, { qrConfig: JSON.stringify(config) });
   }
 
   deleteBoard(id: string): Observable<void> {

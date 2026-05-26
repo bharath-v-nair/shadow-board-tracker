@@ -45,7 +45,15 @@ export class ScannerComponent {
   private router = inject(Router);
 
   onCodeResult(resultString: string) {
-    this.router.navigate(['/board', resultString]);
+    // Bulletproof extraction: 
+    // If the scanned QR code is an older one containing the full URL (http://localhost...), extract just the ID.
+    // If it's the new format (just the ID), it uses it as is.
+    let boardId = resultString;
+    if (resultString.includes('/board/')) {
+      boardId = resultString.split('/board/').pop() || resultString;
+    }
+    
+    this.router.navigate(['/board', boardId]);
   }
 
   goBack() {

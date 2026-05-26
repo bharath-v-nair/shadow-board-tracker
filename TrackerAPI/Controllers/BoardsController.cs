@@ -30,7 +30,7 @@ namespace TrackerAPI.Controllers
                 Id = b.Id,
                 Name = b.Name,
                 Location = b.Location,
-                QrCodeUrl = b.QrCodeUrl
+                QrConfig = b.QrConfig
             }).ToList();
         }
 
@@ -49,7 +49,7 @@ namespace TrackerAPI.Controllers
                 Id = board.Id,
                 Name = board.Name,
                 Location = board.Location,
-                QrCodeUrl = board.QrCodeUrl
+                QrConfig = board.QrConfig
             };
         }
 
@@ -61,7 +61,7 @@ namespace TrackerAPI.Controllers
                 Id = Guid.NewGuid(),
                 Name = createBoardDto.Name,
                 Location = createBoardDto.Location,
-                QrCodeUrl = createBoardDto.QrCodeUrl
+                QrConfig = createBoardDto.QrConfig
             };
 
             _context.Boards.Add(board);
@@ -72,7 +72,7 @@ namespace TrackerAPI.Controllers
                 Id = board.Id,
                 Name = board.Name,
                 Location = board.Location,
-                QrCodeUrl = board.QrCodeUrl
+                QrConfig = board.QrConfig
             };
 
             return CreatedAtAction(nameof(GetBoard), new { id = board.Id }, boardDto);
@@ -94,7 +94,7 @@ namespace TrackerAPI.Controllers
 
             board.Name = updateBoardDto.Name;
             board.Location = updateBoardDto.Location;
-            board.QrCodeUrl = updateBoardDto.QrCodeUrl;
+            board.QrConfig = updateBoardDto.QrConfig;
 
             await _context.SaveChangesAsync();
 
@@ -111,6 +111,21 @@ namespace TrackerAPI.Controllers
             }
 
             _context.Boards.Remove(board);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPatch("{id}/qr-config")]
+        public async Task<IActionResult> PatchQrConfig(Guid id, [FromBody] UpdateQrConfigDto dto)
+        {
+            var board = await _context.Boards.FindAsync(id);
+            if (board == null)
+            {
+                return NotFound();
+            }
+
+            board.QrConfig = dto.QrConfig;
             await _context.SaveChangesAsync();
 
             return NoContent();

@@ -8,7 +8,7 @@ namespace TrackerAPI.DTOs
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
-        public string? QrCodeUrl { get; set; }
+        public string? QrConfig { get; set; }
     }
 
     public class CreateBoardDto
@@ -19,7 +19,7 @@ namespace TrackerAPI.DTOs
         [Required]
         public string Location { get; set; } = string.Empty;
 
-        public string? QrCodeUrl { get; set; }
+        public string? QrConfig { get; set; }
     }
 
     public class UpdateBoardDto
@@ -33,6 +33,11 @@ namespace TrackerAPI.DTOs
         [Required]
         public string Location { get; set; } = string.Empty;
 
-        public string? QrCodeUrl { get; set; }
+        public string? QrConfig { get; set; }
+    }
+
+    public class UpdateQrConfigDto
+    {
+        public string? QrConfig { get; set; }
     }
 }

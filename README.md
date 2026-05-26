@@ -18,6 +18,7 @@ Upon reporting a missing tool, the system automatically assigns a recovery task 
 * **Board CRUD Operations:** QA Administrators can create, update, and delete shadow boards and their associated tool inventories directly from the application.
 * **Minimalist Mobile-First UI:** A clean, Tailwind-driven interface designed for one-handed factory operations, replacing rigid tables and lists with intuitive, color-coded accent cards.
 * **JIT Global Dictionaries:** A highly optimized "Just-In-Time" data fetching architecture that pushes deduplication to the SQL layer, ensuring autocomplete fields (like Tool Names) are always 100% synchronized globally across the factory floor without caching overhead.
+* **Dynamic QR Code Engine & Hardware Printing:** An on-the-fly QR code generation system that allows QA managers to customize board labels (size, logos, titles). Utilizing a stateless configuration architecture and an advanced `@media print` CSS strategy (with absolute layout decoupling), the system bypasses browser print engine stretching bugs to guarantee pixel-perfect proportions when sent to physical A4 hardware printers.
 
 ## Tech Stack
 
@@ -142,6 +143,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Dynamic QR Generation & Printing | ✅ Complete (Phase 16) |
 | Board & Tool CRUD Operations | ✅ Complete (Phase 15) |
 | Cross-Device Local Network Testing | ✅ Complete (Phase 14) |
 | Production Docker Deployment | 🔜 Planned |
