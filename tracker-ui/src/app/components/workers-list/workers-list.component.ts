@@ -6,13 +6,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { Worker } from '../../models/worker.model';
+import { AddWorkerDialogComponent } from './add-worker-dialog.component';
 
 @Component({
   selector: 'app-workers-list',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSlideToggleModule],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSlideToggleModule, MatDialogModule, MatSnackBarModule, MatMenuModule],
   template: `
     <div class="pb-20">
       <header class="bg-white border-b px-4 py-4 flex items-center shadow-sm sticky top-0 z-10">
@@ -23,6 +27,11 @@ import { Worker } from '../../models/worker.model';
           <h1 class="text-xl font-bold text-gray-800 m-0">Shift Roster</h1>
           <p class="text-gray-500 text-xs m-0 mt-1">Manage active floor workers</p>
         </div>
+        <div class="flex-1"></div>
+        <button mat-flat-button color="primary" class="!rounded-full" (click)="openAddWorkerDialog()">
+          <mat-icon>add</mat-icon>
+          Add
+        </button>
       </header>
 
       @if (loading()) {
@@ -39,11 +48,26 @@ import { Worker } from '../../models/worker.model';
                   {{ worker.isOnShift ? 'Active Shift' : 'Off Shift' }}
                 </p>
               </div>
-              <mat-slide-toggle 
-                color="primary"
-                [checked]="worker.isOnShift" 
-                (change)="onToggleShift(worker)">
-              </mat-slide-toggle>
+              <div class="flex items-center gap-2">
+                <mat-slide-toggle 
+                  color="primary"
+                  [checked]="worker.isOnShift" 
+                  (change)="onToggleShift(worker)">
+                </mat-slide-toggle>
+                <button mat-icon-button [matMenuTriggerFor]="menu">
+                  <mat-icon class="text-gray-500">more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="editWorker(worker)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="deleteWorker(worker)">
+                    <mat-icon color="warn">delete</mat-icon>
+                    <span class="text-red-500">Delete</span>
+                  </button>
+                </mat-menu>
+              </div>
             </div>
           }
           @if (workers().length === 0) {
@@ -60,6 +84,8 @@ import { Worker } from '../../models/worker.model';
 export class WorkersListComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
 
   workers = signal<Worker[]>([]);
   loading = signal<boolean>(true);
@@ -99,5 +125,81 @@ export class WorkersListComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/dashboard']);
+  }
+
+  openAddWorkerDialog() {
+    const dialogRef = this.dialog.open(AddWorkerDialogComponent, {
+      width: '400px',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Optimistically add to UI, or wait for API. We will wait for API to ensure ID is correct.
+        this.snackBar.open('Adding worker...', '', { duration: 2000 });
+        this.api.createWorker({ ...result, isAvailable: true }).subscribe({
+          next: (newWorker) => {
+            this.workers.set([...this.workers(), newWorker]);
+            this.snackBar.open('Worker added successfully!', 'Close', { duration: 3000 });
+          },
+          error: (err) => {
+            console.error('Failed to add worker', err);
+            this.snackBar.open('Failed to add worker.', 'Close', { duration: 3000 });
+          }
+        });
+      }
+    });
+  }
+
+  editWorker(worker: Worker) {
+    const dialogRef = this.dialog.open(AddWorkerDialogComponent, {
+      width: '400px',
+      disableClose: true,
+      data: { worker }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.snackBar.open('Updating worker...', '', { duration: 2000 });
+        const updatePayload = {
+          id: worker.id,
+          name: result.name,
+          email: result.email,
+          isAvailable: worker.isAvailable
+        };
+        this.api.updateWorker(worker.id, updatePayload).subscribe({
+          next: () => {
+            // Update local state
+            const updatedWorkers = this.workers().map(w => 
+              w.id === worker.id ? { ...w, ...result } : w
+            );
+            this.workers.set(updatedWorkers);
+            this.snackBar.open('Worker updated successfully!', 'Close', { duration: 3000 });
+          },
+          error: (err) => {
+            console.error('Failed to update worker', err);
+            this.snackBar.open('Failed to update worker.', 'Close', { duration: 3000 });
+          }
+        });
+      }
+    });
+  }
+
+  deleteWorker(worker: Worker) {
+    if (confirm(`Are you sure you want to delete ${worker.name}?`)) {
+      this.snackBar.open('Deleting worker...', '', { duration: 2000 });
+      this.api.deleteWorker(worker.id).subscribe({
+        next: () => {
+          // Remove from local state
+          const updatedWorkers = this.workers().filter(w => w.id !== worker.id);
+          this.workers.set(updatedWorkers);
+          this.snackBar.open('Worker deleted.', 'Close', { duration: 3000 });
+        },
+        error: (err) => {
+          console.error('Failed to delete worker', err);
+          this.snackBar.open('Failed to delete worker.', 'Close', { duration: 3000 });
+        }
+      });
+    }
   }
 }

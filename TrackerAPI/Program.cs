@@ -77,4 +77,11 @@ app.MapControllers();
 
 app.MapFallbackToFile("index.html");
 
+
+//tell azure to build db tables when starting up
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 app.Run();

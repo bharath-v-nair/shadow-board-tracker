@@ -1,10 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBottomSheetModule, MatBottomSheet } from '@angular/material/bottom-sheet';
 import { AdminMenuComponent } from '../admin-menu/admin-menu.component';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -88,8 +89,15 @@ import { AdminMenuComponent } from '../admin-menu/admin-menu.component';
 })
 export class LayoutComponent {
   private bottomSheet = inject(MatBottomSheet);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   openProfileMenu() {
     this.bottomSheet.open(AdminMenuComponent);
+  }
+
+  signOut() {
+    this.authService.clearToken();
+    this.router.navigate(['/login']);
   }
 }

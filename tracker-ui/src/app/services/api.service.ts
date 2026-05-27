@@ -87,6 +87,18 @@ export class ApiService {
     return this.http.get<Worker[]>(`${this.apiUrl}/workers`, { params });
   }
 
+  createWorker(worker: Partial<Worker>): Observable<Worker> {
+    return this.http.post<Worker>(`${this.apiUrl}/workers`, worker);
+  }
+
+  updateWorker(id: string, worker: Partial<Worker>): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/workers/${id}`, worker);
+  }
+
+  deleteWorker(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/workers/${id}`);
+  }
+
   toggleWorkerShift(workerId: string): Observable<Worker> {
     return this.http.patch<Worker>(`${this.apiUrl}/workers/${workerId}/shift`, {});
   }

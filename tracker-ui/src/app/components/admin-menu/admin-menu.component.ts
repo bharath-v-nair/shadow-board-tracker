@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-admin-menu',
@@ -41,7 +42,7 @@ import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
         
         <div class="my-2 border-t border-gray-100"></div>
         
-        <a mat-list-item (click)="closeMenu()">
+        <a mat-list-item (click)="signOut()">
           <mat-icon matListItemIcon class="text-red-500">logout</mat-icon>
           <span matListItemTitle class="font-bold text-red-600">Sign Out</span>
         </a>
@@ -52,6 +53,7 @@ import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 export class AdminMenuComponent {
   private bottomSheetRef = inject(MatBottomSheetRef<AdminMenuComponent>);
   private router = inject(Router);
+  private authService = inject(AuthService);
 
   closeMenu(): void {
     this.bottomSheetRef.dismiss();
@@ -60,5 +62,11 @@ export class AdminMenuComponent {
   goToWorkers(): void {
     this.router.navigate(['/workers']);
     this.closeMenu();
+  }
+
+  signOut(): void {
+    this.authService.clearToken();
+    this.closeMenu();
+    this.router.navigate(['/login']);
   }
 }
