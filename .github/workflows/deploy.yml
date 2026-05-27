@@ -1,0 +1,56 @@
+name: Build and Deploy Unified SPA to Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download your code onto the GitHub server
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js (for Angular)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Build the Angular Frontend
+      - name: Build Angular App
+        working-directory: ./tracker-ui
+        run: |
+          npm install
+          npm run build -- --configuration production
+
+      # 4. Setup .NET 10
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # 5. Move the compiled Angular files into the .NET wwwroot folder
+      - name: Copy Angular Build to .NET wwwroot
+        run: |
+          mkdir -p ./TrackerAPI/wwwroot
+          # Note: In Angular 21, the build usually goes to dist/tracker-ui/browser. 
+          # If your angular.json outputs somewhere else, adjust this path!
+          cp -r ./tracker-ui/dist/tracker-ui/browser/* ./TrackerAPI/wwwroot/
+
+      # 6. Build the .NET App (which now contains the Angular files inside it)
+      - name: Build and Publish .NET API
+        working-directory: ./TrackerAPI
+        run: dotnet publish -c Release -o ./publish
+
+      # 7. Send the final package to Azure using your Secret!
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'shadowboard-tracker'
+          publish-profile: ${{ secrets.AZURE_APP_SERVICE_PUBLISH_PROFILE }}
+          package: ./TrackerAPI/publish
