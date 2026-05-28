@@ -22,9 +22,18 @@ namespace TrackerAPI.Data
                 new Worker
                 {
                     Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                    Name = "Bharath Nair",
+                    Name = "QA Bharath1",
                     Email = "nairbharathofficial@gmail.com",
-                    IsAvailable = true
+                    IsAvailable = true,
+                    Role = "QA"
+                },
+                new Worker
+                {
+                    Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    Name = "QA Bharath2",
+                    Email = "nairbharath21@gmail.com",
+                    IsAvailable = true,
+                    Role = "QA"
                 }
             );
 
