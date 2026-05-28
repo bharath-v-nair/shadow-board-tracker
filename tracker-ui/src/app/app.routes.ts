@@ -23,7 +23,7 @@ export const routes: Routes = [
     ]
   },
   { path: 'scan', component: ScannerComponent, canActivate: [authGuard] },
-  { path: 'incident/:id', component: IncidentDetailComponent, canActivate: [authGuard] },
+  { path: 'incident/:id', component: IncidentDetailComponent },
   { path: 'login', component: LoginComponent },
   { path: '**', redirectTo: '' }
 ];
