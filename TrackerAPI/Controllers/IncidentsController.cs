@@ -152,7 +152,8 @@ namespace TrackerAPI.Controllers
                 if (worker != null && tool != null && board != null)
                 {
                     var subject = "New Task Assigned: Missing Tool";
-                    var link = $"http://localhost:4200/incident/{incident.Id}";
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    var link = $"{baseUrl}/incident/{incident.Id}";
                     var body = $"<p>A new missing tool incident has been assigned to you.</p>" +
                                $"<p><strong>Tool:</strong> {tool.Name}</p>" +
                                $"<p><strong>Board:</strong> {board.Name}</p>" +
@@ -299,7 +300,8 @@ namespace TrackerAPI.Controllers
                 if (worker != null && tool != null && board != null)
                 {
                     var subject = $"Action Required: QA Rejected Resolution for {tool.Name}";
-                    var link = $"http://localhost:4200/incident/{incident.Id}";
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    var link = $"{baseUrl}/incident/{incident.Id}";
                     var body = $"<p>A QA inspector has reviewed your resolution and rejected it. The tool is still missing.</p>" +
                                $"<p><strong>Tool:</strong> {tool.Name}</p>" +
                                $"<p><strong>Board:</strong> {board.Name}</p>" +
