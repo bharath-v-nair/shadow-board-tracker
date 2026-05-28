@@ -4,10 +4,19 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TrackerAPI.Data;
 using TrackerAPI.Interfaces;
+using Azure.Identity;
 using TrackerAPI.Services;
 using TrackerAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Azure Key Vault Integration
+var keyVaultUriStr = builder.Configuration["KeyVaultUri"];
+if (!string.IsNullOrEmpty(keyVaultUriStr))
+{
+    var keyVaultUri = new Uri(keyVaultUriStr);
+    builder.Configuration.AddAzureKeyVault(keyVaultUri, new DefaultAzureCredential());
+}
 
 
 // Add these two lines if they aren't there already:
