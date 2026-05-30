@@ -6,18 +6,28 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../services/api.service';
 import { Incident } from '../../models/incident.model';
+import { AuthService } from '../../services/auth.service';
+import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTabsModule],
+  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTabsModule, MatDialogModule],
   template: `
     <div class="max-w-md mx-auto min-h-screen bg-slate-50 pb-20 font-sans text-slate-800">
-      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-6 shadow-sm sticky top-0 z-20 transition-all">
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 m-0">Command Center</h1>
-        <p class="text-slate-500 text-sm m-0 mt-1 font-medium">Global QA Dashboard</p>
+      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-6 shadow-sm sticky top-0 z-20 transition-all flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 m-0">Command Center</h1>
+          <p class="text-slate-500 text-sm m-0 mt-1 font-medium">Global QA Dashboard</p>
+        </div>
+        @if (auth.isDemoUser()) {
+          <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
+            <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
+          </button>
+        }
       </header>
 
       @if (loading()) {
@@ -195,6 +205,8 @@ import { Incident } from '../../models/incident.model';
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  public auth = inject(AuthService);
+  private dialog = inject(MatDialog);
 
   globalIncidents = signal<Incident[]>([]);
   loading = signal<boolean>(true);
@@ -253,5 +265,15 @@ export class DashboardComponent implements OnInit {
       return `${hours} hr${hours > 1 ? 's' : ''} ${mins} min${mins !== 1 ? 's' : ''}`;
     }
     return `${mins} min${mins !== 1 ? 's' : ''}`;
+  }
+
+  showDemoInfo() {
+    this.dialog.open(DemoRestrictedDialogComponent, {
+      data: {
+        title: 'Demo Mode Active',
+        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
+      },
+      panelClass: 'rounded-2xl'
+    });
   }
 }

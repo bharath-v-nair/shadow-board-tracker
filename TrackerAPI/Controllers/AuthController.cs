@@ -65,6 +65,44 @@ namespace TrackerAPI.Controllers
             return Ok(new { message = "If the email exists, a login code has been sent." });
         }
 
+        [HttpPost("demo-login")]
+        public async Task<IActionResult> DemoLogin()
+        {
+            var demoEmail = "demo@factory.com";
+            var worker = await _context.Workers.FirstOrDefaultAsync(w => w.Email == demoEmail);
+            
+            if (worker == null)
+            {
+                return NotFound(new { message = "Demo user not seeded in database." });
+            }
+
+            var secretKey = _configuration["Jwt:SecretKey"];
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                return StatusCode(500, "JWT secret key is not configured.");
+            }
+
+            var keyBytes = Encoding.UTF8.GetBytes(secretKey);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, worker.Id.ToString()),
+                    new Claim(ClaimTypes.Email, worker.Email),
+                    new Claim(ClaimTypes.Name, worker.Name),
+                    new Claim(ClaimTypes.Role, worker.Role)
+                }),
+                Expires = DateTime.UtcNow.AddHours(8),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtToken = tokenHandler.CreateToken(tokenDescriptor);
+            var jwtString = tokenHandler.WriteToken(jwtToken);
+
+            return Ok(new { token = jwtString });
+        }
+
         [HttpPost("verify")]
         public async Task<IActionResult> Verify(VerifyTokenDto request)
         {

@@ -104,6 +104,8 @@ namespace TrackerAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBoard(Guid id)
         {
+            if (User.IsInRole("DemoViewer")) return Forbid();
+
             var board = await _context.Boards.FindAsync(id);
             if (board == null)
             {

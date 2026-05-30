@@ -72,6 +72,23 @@ type LoginStatus = 'enter-email' | 'loading' | 'enter-code' | 'verifying' | 'err
                     <span>Send Login Code</span>
                   }
                 </button>
+
+                <div class="relative py-2">
+                  <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-slate-200"></div>
+                  </div>
+                  <div class="relative flex justify-center text-xs">
+                    <span class="bg-white px-2 text-slate-400 font-medium">OR</span>
+                  </div>
+                </div>
+
+                <button
+                  (click)="onDemoLogin()"
+                  [disabled]="status() === 'loading'"
+                  class="w-full h-12 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm tracking-wide flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50">
+                  <mat-icon class="text-blue-600">visibility</mat-icon>
+                  <span>Continue as Demo User</span>
+                </button>
               </div>
             }
 
@@ -184,5 +201,21 @@ export class LoginComponent {
     this.otpCode = '';
     this.otpError.set(null);
     this.status.set('enter-email');
+  }
+
+  onDemoLogin() {
+    if (this.status() === 'loading') return;
+    this.status.set('loading');
+    
+    this.api.demoLogin().subscribe({
+      next: (response) => {
+        this.auth.setToken(response.token);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        console.error('Demo login failed', err);
+        this.status.set('error');
+      }
+    });
   }
 }

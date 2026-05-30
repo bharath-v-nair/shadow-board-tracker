@@ -140,6 +140,10 @@ export class ApiService {
   requestMagicLink(email: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/request-link`, { email });
   }
+
+  demoLogin(): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`${this.apiUrl}/auth/demo-login`, {});
+  }
 }
 
 

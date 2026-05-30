@@ -143,10 +143,11 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Role-Based Access Control (RBAC) & Demo Sandbox | ✅ Complete (Phase 18) |
+| Enterprise Azure Deployment & CI/CD | ✅ Complete (Phase 17) |
 | Dynamic QR Generation & Printing | ✅ Complete (Phase 16) |
 | Board & Tool CRUD Operations | ✅ Complete (Phase 15) |
 | Cross-Device Local Network Testing | ✅ Complete (Phase 14) |
-| Production Docker Deployment | 🔜 Planned |
 | PWA Service Worker Offline Caching | ⏳ Deferred to Final Deployment Phase |
 
 > **Note on Offline Caching:** The Angular Service Worker is intentionally **not activated** in the development (`ng serve`) environment. Enabling aggressive asset caching during active development creates cache-invalidation conflicts that interfere with hot-module reloading and rapid iteration. The Service Worker will be fully configured and enabled as part of the final production build and deployment phase.

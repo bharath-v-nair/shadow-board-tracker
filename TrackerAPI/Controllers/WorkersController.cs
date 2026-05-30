@@ -121,6 +121,8 @@ namespace TrackerAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteWorker(Guid id)
         {
+            if (User.IsInRole("DemoViewer")) return Forbid();
+
             var worker = await _context.Workers.FindAsync(id);
             if (worker == null)
             {
@@ -134,7 +136,7 @@ namespace TrackerAPI.Controllers
         }
 
         [HttpPatch("{id}/shift")]
-        [Authorize(Roles = "QA")]
+        [Authorize(Roles = "QA,DemoViewer")]
         public async Task<ActionResult<WorkerDto>> ToggleShift(Guid id)
         {
             var worker = await _context.Workers.FindAsync(id);

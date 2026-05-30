@@ -13,6 +13,8 @@ import { ApiService } from '../../services/api.service';
 import { Board } from '../../models/board.model';
 import { BoardBottomSheetComponent } from '../board-bottom-sheet/board-bottom-sheet.component';
 import { QrCustomizerDialogComponent } from '../qr-customizer-dialog/qr-customizer-dialog.component';
+import { AuthService } from '../../services/auth.service';
+import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 
 @Component({
   selector: 'app-boards-list',
@@ -37,6 +39,12 @@ import { QrCustomizerDialogComponent } from '../qr-customizer-dialog/qr-customiz
           <h1 class="text-3xl font-bold text-gray-800 m-0">Shadow Boards</h1>
           <p class="text-gray-500 m-0 mt-1">Select a board to view tools</p>
         </div>
+        
+        @if (auth.isDemoUser()) {
+          <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
+            <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
+          </button>
+        }
       </header>
 
       @if (loading()) {
@@ -121,6 +129,7 @@ export class BoardsListComponent implements OnInit {
   private bottomSheet = inject(MatBottomSheet);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
+  public auth = inject(AuthService);
 
   boards = signal<Board[]>([]);
   loading = signal<boolean>(true);
@@ -193,6 +202,17 @@ export class BoardsListComponent implements OnInit {
 
   // ── Delete Board ──────────────────────────────────────────
   onDeleteBoard(board: Board) {
+    if (this.auth.isDemoUser()) {
+      this.dialog.open(DemoRestrictedDialogComponent, {
+        data: {
+          title: 'Action Restricted',
+          message: `Since you are logged in as a Demo User, deletion of shadow boards is not allowed to preserve the environment for other guests.`
+        },
+        panelClass: 'rounded-2xl'
+      });
+      return;
+    }
+
     if (!confirm(`Delete "${board.name}"? This cannot be undone.`)) return;
 
     this.api.deleteBoard(board.id).subscribe({
@@ -201,6 +221,16 @@ export class BoardsListComponent implements OnInit {
         this.snackBar.open(`"${board.name}" deleted.`, 'Close', { duration: 2500 });
       },
       error: () => this.snackBar.open('Failed to delete board.', 'Close', { duration: 3000 })
+    });
+  }
+
+  showDemoInfo() {
+    this.dialog.open(DemoRestrictedDialogComponent, {
+      data: {
+        title: 'Demo Mode Active',
+        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
+      },
+      panelClass: 'rounded-2xl'
     });
   }
 }

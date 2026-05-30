@@ -20,6 +20,7 @@ import { ToolBottomSheetComponent, ToolSheetData, ToolSheetResult } from '../too
 import { QrCustomizerDialogComponent } from '../qr-customizer-dialog/qr-customizer-dialog.component';
 import { BoardBottomSheetComponent } from '../board-bottom-sheet/board-bottom-sheet.component';
 import { MatMenuModule } from '@angular/material/menu';
+import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 
 @Component({
   selector: 'app-board-detail',
@@ -46,7 +47,14 @@ import { MatMenuModule } from '@angular/material/menu';
           <h1 class="text-3xl font-bold text-gray-800 m-0 leading-tight">{{ board()?.name || 'Loading...' }}</h1>
           <p class="text-sm text-gray-500 m-0">{{ board()?.location }}</p>
         </div>
-        <div class="ml-auto">
+        
+        <div class="ml-auto flex items-center gap-2">
+          @if (authService.isDemoUser()) {
+            <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
+              <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
+            </button>
+          }
+          
           <button mat-icon-button [matMenuTriggerFor]="boardMenu" aria-label="Board options">
             <mat-icon>more_vert</mat-icon>
           </button>
@@ -195,7 +203,7 @@ export class BoardDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(ApiService);
-  private authService = inject(AuthService);
+  public authService = inject(AuthService);
   private dialog = inject(MatDialog);
   private bottomSheet = inject(MatBottomSheet);
   private snackBar = inject(MatSnackBar);
@@ -426,6 +434,17 @@ export class BoardDetailComponent implements OnInit {
     const currentBoard = this.board();
     if (!currentBoard) return;
 
+    if (this.authService.isDemoUser()) {
+      this.dialog.open(DemoRestrictedDialogComponent, {
+        data: {
+          title: 'Action Restricted',
+          message: `Since you are logged in as a Demo User, deletion of shadow boards is not allowed to preserve the environment for other guests.`
+        },
+        panelClass: 'rounded-2xl'
+      });
+      return;
+    }
+
     if (!confirm(`Delete "${currentBoard.name}"? This cannot be undone.`)) return;
 
     this.api.deleteBoard(currentBoard.id).subscribe({
@@ -439,5 +458,15 @@ export class BoardDetailComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/boards']);
+  }
+
+  showDemoInfo() {
+    this.dialog.open(DemoRestrictedDialogComponent, {
+      data: {
+        title: 'Demo Mode Active',
+        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
+      },
+      panelClass: 'rounded-2xl'
+    });
   }
 }

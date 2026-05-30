@@ -18,6 +18,9 @@ import { MatDividerModule } from '@angular/material/divider';
 import { startWith, map } from 'rxjs/operators';
 import { ApiService } from '../../services/api.service';
 import { Tool, CreateToolPayload, UpdateToolPayload } from '../../models/tool.model';
+import { AuthService } from '../../services/auth.service';
+import { MatDialog } from '@angular/material/dialog';
+import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 
 export interface ToolSheetData {
   boardId: string;
@@ -177,6 +180,8 @@ export class ToolBottomSheetComponent implements OnInit {
   private data: ToolSheetData = inject(MAT_BOTTOM_SHEET_DATA);
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
+  public auth = inject(AuthService);
+  private dialog = inject(MatDialog);
 
   conditions = CONDITIONS;
   submitting = signal(false);
@@ -286,6 +291,18 @@ export class ToolBottomSheetComponent implements OnInit {
 
   onDelete() {
     if (!this.data.tool) return;
+    
+    if (this.auth.isDemoUser()) {
+      this.dialog.open(DemoRestrictedDialogComponent, {
+        data: {
+          title: 'Action Restricted',
+          message: `Since you are logged in as a Demo User, deletion of tools is not allowed to preserve the environment for other guests.`
+        },
+        panelClass: 'rounded-2xl'
+      });
+      return;
+    }
+
     this.deleting.set(true);
     this.error.set(null);
 

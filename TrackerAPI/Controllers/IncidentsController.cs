@@ -50,7 +50,7 @@ namespace TrackerAPI.Controllers
             }).ToList();
         }
 
-        [Authorize(Roles = "QA")]
+        [Authorize(Roles = "QA,DemoViewer")]
         [HttpGet("all")]
         public async Task<ActionResult<IEnumerable<IncidentDto>>> GetAllIncidents()
         {
@@ -209,6 +209,8 @@ namespace TrackerAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteIncident(Guid id)
         {
+            if (User.IsInRole("DemoViewer")) return Forbid();
+
             var incident = await _context.Incidents.FindAsync(id);
             if (incident == null)
             {
@@ -244,7 +246,7 @@ namespace TrackerAPI.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "QA")]
+        [Authorize(Roles = "QA,DemoViewer")]
         [HttpPatch("{id}/verify")]
         public async Task<IActionResult> VerifyIncident(Guid id)
         {
@@ -266,7 +268,7 @@ namespace TrackerAPI.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "QA")]
+        [Authorize(Roles = "QA,DemoViewer")]
         [HttpPatch("{id}/reopen")]
         public async Task<IActionResult> ReopenIncident(Guid id)
         {

@@ -34,6 +34,14 @@ namespace TrackerAPI.Data
                     Email = "nairbharath21@gmail.com",
                     IsAvailable = true,
                     Role = "QA"
+                },
+                new Worker
+                {
+                    Id = Guid.Parse("10000000-0000-0000-0000-000000000000"),
+                    Name = "Demo Recruiter",
+                    Email = "demo@factory.com",
+                    IsAvailable = true,
+                    Role = "DemoViewer"
                 }
             );
 

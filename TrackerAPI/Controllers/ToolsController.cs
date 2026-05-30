@@ -140,6 +140,8 @@ namespace TrackerAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTool(Guid id)
         {
+            if (User.IsInRole("DemoViewer")) return Forbid();
+
             var tool = await _context.Tools.FindAsync(id);
             if (tool == null)
             {

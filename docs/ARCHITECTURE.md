@@ -230,3 +230,44 @@ A dedicated `BoardsListComponent` provides a full administrative view of all sha
 
 ### Tool Management (Within a Board)
 Within the `BoardDetailComponent`, QA Administrators can add new tool slots to a board using the existing Angular Material Bottom Sheet. The "Add Tool" flow leverages the **JIT Global Dictionary** (introduced in Phase 13) to populate the autocomplete with the full, deduplicated list of tool names from across the entire factory, ensuring naming consistency without manual cross-referencing. Administrators can also remove individual tool records from a board directly from the board detail view.
+
+## Phase 17: Enterprise Cloud Deployment & CI/CD
+During Phase 17, the application evolved from a local development tool into a highly secure, automated, and observable production-ready Enterprise Application hosted on Microsoft Azure.
+
+### 1. Unified SPA Architecture
+To simplify our hosting infrastructure and eliminate CORS complications, we adopted a Unified SPA deployment model. The Angular application is compiled into static assets and placed directly inside the .NET Core API's `wwwroot` directory. The ASP.NET Core middleware (`UseDefaultFiles`, `UseStaticFiles`, `MapFallbackToFile`) serves the frontend and handles client-side routing, meaning we only need a single Azure App Service instance.
+
+### 2. CI/CD Pipeline (GitHub Actions)
+Deployments are entirely automated using GitHub Actions. Upon a push to the `main` branch, the pipeline provisions a runner, builds both the Node.js frontend and the .NET backend, compiles them into a unified artifact, and pushes the release securely to Azure via a Publish Profile stored in GitHub Secrets.
+
+### 3. Azure Key Vault & Managed Identities
+Local environment variables and `appsettings.json` are inherently insecure for production secrets. We integrated Azure Key Vault to store the `Jwt:SecretKey`, `SendGrid:ApiKey`, and `DefaultConnection` string. By assigning a System Assigned Managed Identity to our App Service, the .NET backend uses `DefaultAzureCredential` to silently pull these secrets into memory at runtime without ever exposing them in source code or Azure Application settings.
+
+### 4. Smart Database Initializer
+Fresh Azure SQL instances begin empty. To enable instant usage without manual SQL scripts, we engineered a `DbInitializer` that runs on application startup. It inspects the database and, if empty, automatically seeds 2 QA users, 4 Floor Workers, 5 Shadow Boards, and 17 Tools, utilizing EF Core's robust ORM.
+
+### 5. Enterprise Observability (App Insights)
+We activated Azure Application Insights to monitor the live Azure Web App. This provides real-time telemetry, memory usage tracking, API endpoint response times, and deep stack-traces for unhandled exceptions, giving us full visibility into the production environment.
+
+## Phase 18: Demo User Role-Based Access Control (RBAC) Sandbox
+
+To provide a secure, interactive portfolio demonstration for recruiters, the application implements a lightweight Role-Based Access Control (RBAC) sandbox architecture.
+
+### 1. Static Demo Account Seeding
+A permanent, static account (`demo@factory.com`) is injected into the database via Entity Framework Core Migrations using the `HasData` seeding method. This account is assigned a specialized `DemoViewer` role.
+
+### 2. Authentication Bypass
+To remove the friction of the 15-minute OTP email flow for guest users, a `POST /api/auth/demo-login` backdoor endpoint was engineered. It explicitly bypasses the SendGrid integration, performs a direct database lookup for the seeded demo account, and instantly mints an 8-hour JSON Web Token (JWT) populated with the `DemoViewer` role claim.
+
+### 3. Bulletproof Controller Authorization
+To protect the foundational seeded database state from vandalism, strict role-based authorization checks were injected into the ASP.NET Core controllers. Any `[HttpDelete]` action across the `Boards`, `Tools`, `Workers`, or `Incidents` controllers strictly blocks execution.
+```csharp
+if (User.IsInRole("DemoViewer")) return Forbid();
+```
+Guests can fully interact with the application—creating tools, reporting missing incidents, and testing the UI—but are hard-blocked from permanently destroying the showcase data.
+
+### 4. Reactive UX & Graceful Error Handling
+To elevate the user experience, the Angular frontend intercepts these restrictions before they result in a generic `403 Forbidden` API error. 
+* The `AuthService` decodes the JWT to expose an `isDemoUser()` signal.
+* A persistent "Demo Mode" badge is conditionally rendered across the global navigation headers.
+* When a guest attempts a restricted `DELETE` action, the UI intercepts the click and launches a polished Angular Material Dialog (`DemoRestrictedDialogComponent`) explaining the sandbox limitations, demonstrating robust frontend-to-backend error mapping.

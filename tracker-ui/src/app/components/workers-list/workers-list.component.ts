@@ -12,6 +12,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { Worker } from '../../models/worker.model';
 import { AddWorkerDialogComponent } from './add-worker-dialog.component';
+import { AuthService } from '../../services/auth.service';
+import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 
 @Component({
   selector: 'app-workers-list',
@@ -28,6 +30,13 @@ import { AddWorkerDialogComponent } from './add-worker-dialog.component';
           <p class="text-gray-500 text-xs m-0 mt-1">Manage active floor workers</p>
         </div>
         <div class="flex-1"></div>
+        
+        @if (auth.isDemoUser()) {
+          <button (click)="showDemoInfo()" class="mr-3 bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
+            <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
+          </button>
+        }
+        
         <button mat-flat-button color="primary" class="!rounded-full" (click)="openAddWorkerDialog()">
           <mat-icon>add</mat-icon>
           Add
@@ -86,6 +95,7 @@ export class WorkersListComponent implements OnInit {
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  public auth = inject(AuthService);
 
   workers = signal<Worker[]>([]);
   loading = signal<boolean>(true);
@@ -186,6 +196,17 @@ export class WorkersListComponent implements OnInit {
   }
 
   deleteWorker(worker: Worker) {
+    if (this.auth.isDemoUser()) {
+      this.dialog.open(DemoRestrictedDialogComponent, {
+        data: {
+          title: 'Action Restricted',
+          message: `Since you are logged in as a Demo User, deletion of worker accounts is not allowed to preserve the environment for other guests.`
+        },
+        panelClass: 'rounded-2xl'
+      });
+      return;
+    }
+
     if (confirm(`Are you sure you want to delete ${worker.name}?`)) {
       this.snackBar.open('Deleting worker...', '', { duration: 2000 });
       this.api.deleteWorker(worker.id).subscribe({
@@ -201,5 +222,15 @@ export class WorkersListComponent implements OnInit {
         }
       });
     }
+  }
+
+  showDemoInfo() {
+    this.dialog.open(DemoRestrictedDialogComponent, {
+      data: {
+        title: 'Demo Mode Active',
+        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
+      },
+      panelClass: 'rounded-2xl'
+    });
   }
 }
