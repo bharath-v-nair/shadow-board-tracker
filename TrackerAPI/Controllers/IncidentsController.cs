@@ -1,16 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TrackerAPI.Data;
-using TrackerAPI.Models;
 using TrackerAPI.DTOs;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
-using TrackerAPI.Interfaces;
+using MediatR;
+using TrackerAPI.Application.Features.Incidents.Queries;
+using TrackerAPI.Application.Features.Incidents.Commands;
 
 namespace TrackerAPI.Controllers
 {
@@ -18,96 +15,39 @@ namespace TrackerAPI.Controllers
     [ApiController]
     public class IncidentsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IEmailService _emailService;
-        private readonly ILogger<IncidentsController> _logger;
+        private readonly IMediator _mediator;
 
-        public IncidentsController(ApplicationDbContext context, IEmailService emailService, ILogger<IncidentsController> logger)
+        public IncidentsController(IMediator mediator)
         {
-            _context = context;
-            _emailService = emailService;
-            _logger = logger;
+            _mediator = mediator;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<IncidentDto>>> GetIncidents()
         {
-            var incidents = await _context.Incidents
-                .Include(i => i.Reporter)
-                .Include(i => i.Worker)
-                .ToListAsync();
-            return incidents.Select(i => new IncidentDto
-            {
-                Id = i.Id,
-                ToolId = i.ToolId,
-                WorkerId = i.WorkerId,
-                ReporterId = i.ReporterId,
-                ReportedAt = i.ReportedAt,
-                ResolvedAt = i.ResolvedAt,
-                Status = i.Status,
-                ReporterName = i.Reporter?.Name,
-                WorkerName = i.Worker?.Name
-            }).ToList();
+            var incidents = await _mediator.Send(new GetIncidentsQuery());
+            return Ok(incidents);
         }
 
         [Authorize(Roles = "QA,DemoViewer")]
         [HttpGet("all")]
         public async Task<ActionResult<IEnumerable<IncidentDto>>> GetAllIncidents()
         {
-            var incidents = await _context.Incidents
-                .Include(i => i.Tool).ThenInclude(t => t.Board)
-                .Include(i => i.Reporter)
-                .Include(i => i.Worker)
-                .OrderByDescending(i => i.ReportedAt)
-                .ToListAsync();
-
-            return Ok(incidents.Select(i => new IncidentDto
-            {
-                Id = i.Id,
-                ToolId = i.ToolId,
-                WorkerId = i.WorkerId,
-                ReporterId = i.ReporterId,
-                ReportedAt = i.ReportedAt,
-                ResolvedAt = i.ResolvedAt,
-                Status = i.Status,
-                ToolName = i.Tool?.Name,
-                BoardName = i.Tool?.Board?.Name,
-                ReporterName = i.Reporter?.Name,
-                WorkerName = i.Worker?.Name,
-                BoardId = i.Tool?.BoardId
-            }));
+            var incidents = await _mediator.Send(new GetAllIncidentsQuery());
+            return Ok(incidents);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<IncidentDto>> GetIncident(Guid id)
         {
-            var incident = await _context.Incidents
-                .Include(i => i.Reporter)
-                .Include(i => i.Worker)
-                .FirstOrDefaultAsync(i => i.Id == id);
+            var incident = await _mediator.Send(new GetIncidentByIdQuery(id));
 
             if (incident == null)
             {
                 return NotFound();
             }
 
-            var tool = await _context.Tools.FindAsync(incident.ToolId);
-            var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
-
-            return new IncidentDto
-            {
-                Id = incident.Id,
-                ToolId = incident.ToolId,
-                WorkerId = incident.WorkerId,
-                ReporterId = incident.ReporterId,
-                ReportedAt = incident.ReportedAt,
-                ResolvedAt = incident.ResolvedAt,
-                Status = incident.Status,
-                ToolName = tool?.Name,
-                BoardName = board?.Name,
-                ReporterName = incident.Reporter?.Name,
-                WorkerName = incident.Worker?.Name
-            };
+            return Ok(incident);
         }
 
         [Authorize]
@@ -115,71 +55,20 @@ namespace TrackerAPI.Controllers
         public async Task<ActionResult<IncidentDto>> PostIncident(CreateIncidentDto createIncidentDto)
         {
             var reporterIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(reporterIdClaim) || !Guid.TryParse(reporterIdClaim, out var reporterId))
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            
+            var result = await _mediator.Send(new CreateIncidentCommand(createIncidentDto, reporterIdClaim, baseUrl));
+
+            if (result.IsUnauthorized)
             {
-                return Unauthorized("Invalid token claims.");
+                return Unauthorized(result.ErrorMessage);
+            }
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.ErrorMessage);
             }
 
-            var existingIncident = await _context.Incidents
-                .AnyAsync(i => i.ToolId == createIncidentDto.ToolId && 
-                              (i.Status == IncidentStatus.Open || i.Status == IncidentStatus.PendingReview));
-
-            if (existingIncident)
-            {
-                return BadRequest("An active incident already exists for this tool.");
-            }
-
-            var incident = new Incident
-            {
-                Id = Guid.NewGuid(),
-                ToolId = createIncidentDto.ToolId,
-                WorkerId = createIncidentDto.WorkerId,
-                ReporterId = reporterId,
-                Status = createIncidentDto.Status,
-                ReportedAt = DateTime.UtcNow
-            };
-
-            _context.Incidents.Add(incident);
-            await _context.SaveChangesAsync();
-
-            try
-            {
-                var worker = await _context.Workers.FindAsync(incident.WorkerId);
-                var reporter = await _context.Workers.FindAsync(incident.ReporterId);
-                var tool = await _context.Tools.FindAsync(incident.ToolId);
-                var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
-
-                if (worker != null && tool != null && board != null)
-                {
-                    var subject = "New Task Assigned: Missing Tool";
-                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                    var link = $"{baseUrl}/incident/{incident.Id}";
-                    var body = $"<p>A new missing tool incident has been assigned to you.</p>" +
-                               $"<p><strong>Tool:</strong> {tool.Name}</p>" +
-                               $"<p><strong>Board:</strong> {board.Name}</p>" +
-                               $"<p><strong>Reported By:</strong> {reporter?.Name ?? "Unknown"}</p>" +
-                               $"<p><a href='{link}'>Click here to view and resolve the incident</a></p>";
-
-                    await _emailService.SendEmailAsync(worker.Email, subject, body);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send assignment email for incident {IncidentId}", incident.Id);
-            }
-
-            var incidentDto = new IncidentDto
-            {
-                Id = incident.Id,
-                ToolId = incident.ToolId,
-                WorkerId = incident.WorkerId,
-                ReporterId = incident.ReporterId,
-                ReportedAt = incident.ReportedAt,
-                ResolvedAt = incident.ResolvedAt,
-                Status = incident.Status
-            };
-
-            return CreatedAtAction(nameof(GetIncident), new { id = incident.Id }, incidentDto);
+            return CreatedAtAction(nameof(GetIncident), new { id = result.Incident.Id }, result.Incident);
         }
 
         [Authorize]
@@ -191,16 +80,9 @@ namespace TrackerAPI.Controllers
                 return BadRequest();
             }
 
-            var incident = await _context.Incidents.FindAsync(id);
-            if (incident == null)
-            {
-                return NotFound();
-            }
-
-            incident.ResolvedAt = updateIncidentDto.ResolvedAt;
-            incident.Status = updateIncidentDto.Status;
-
-            await _context.SaveChangesAsync();
+            var success = await _mediator.Send(new UpdateIncidentCommand(id, updateIncidentDto));
+            
+            if (!success) return NotFound();
 
             return NoContent();
         }
@@ -211,14 +93,9 @@ namespace TrackerAPI.Controllers
         {
             if (User.IsInRole("DemoViewer")) return Forbid();
 
-            var incident = await _context.Incidents.FindAsync(id);
-            if (incident == null)
-            {
-                return NotFound();
-            }
-
-            _context.Incidents.Remove(incident);
-            await _context.SaveChangesAsync();
+            var success = await _mediator.Send(new DeleteIncidentCommand(id));
+            
+            if (!success) return NotFound();
 
             return NoContent();
         }
@@ -227,21 +104,10 @@ namespace TrackerAPI.Controllers
         [HttpPatch("{id}/resolve")]
         public async Task<IActionResult> ResolveIncident(Guid id)
         {
-            var incident = await _context.Incidents.FindAsync(id);
-            if (incident == null)
-            {
-                return NotFound();
-            }
-
-            if (incident.Status != IncidentStatus.Open)
-            {
-                return BadRequest("Incident is not open.");
-            }
-
-            incident.Status = IncidentStatus.PendingReview;
-            incident.ResolvedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
+            var result = await _mediator.Send(new ResolveIncidentCommand(id));
+            
+            if (result.NotFound) return NotFound();
+            if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
 
             return NoContent();
         }
@@ -250,20 +116,10 @@ namespace TrackerAPI.Controllers
         [HttpPatch("{id}/verify")]
         public async Task<IActionResult> VerifyIncident(Guid id)
         {
-            var incident = await _context.Incidents.FindAsync(id);
-            if (incident == null)
-            {
-                return NotFound();
-            }
-
-            if (incident.Status != IncidentStatus.PendingReview)
-            {
-                return BadRequest("Incident is not pending review.");
-            }
-
-            incident.Status = IncidentStatus.Resolved;
-
-            await _context.SaveChangesAsync();
+            var result = await _mediator.Send(new VerifyIncidentCommand(id));
+            
+            if (result.NotFound) return NotFound();
+            if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
 
             return NoContent();
         }
@@ -272,51 +128,11 @@ namespace TrackerAPI.Controllers
         [HttpPatch("{id}/reopen")]
         public async Task<IActionResult> ReopenIncident(Guid id)
         {
-            var incident = await _context.Incidents
-                .Include(i => i.Worker)
-                .Include(i => i.Reporter)
-                .FirstOrDefaultAsync(i => i.Id == id);
-                
-            if (incident == null)
-            {
-                return NotFound();
-            }
-
-            if (incident.Status != IncidentStatus.PendingReview)
-            {
-                return BadRequest("Incident is not pending review.");
-            }
-
-            incident.Status = IncidentStatus.Open;
-            incident.ResolvedAt = null;
-
-            await _context.SaveChangesAsync();
-
-            try
-            {
-                var tool = await _context.Tools.FindAsync(incident.ToolId);
-                var board = tool != null ? await _context.Boards.FindAsync(tool.BoardId) : null;
-                var worker = incident.Worker;
-                var reporter = incident.Reporter;
-
-                if (worker != null && tool != null && board != null)
-                {
-                    var subject = $"Action Required: QA Rejected Resolution for {tool.Name}";
-                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                    var link = $"{baseUrl}/incident/{incident.Id}";
-                    var body = $"<p>A QA inspector has reviewed your resolution and rejected it. The tool is still missing.</p>" +
-                               $"<p><strong>Tool:</strong> {tool.Name}</p>" +
-                               $"<p><strong>Board:</strong> {board.Name}</p>" +
-                               $"<p><strong>Rejected By:</strong> {reporter?.Name ?? "Unknown"}</p>" +
-                               $"<p><a href='{link}'>Click here to view and resolve the incident again</a></p>";
-
-                    await _emailService.SendEmailAsync(worker.Email, subject, body);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send rejection email for incident {IncidentId}", incident.Id);
-            }
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var result = await _mediator.Send(new ReopenIncidentCommand(id, baseUrl));
+            
+            if (result.NotFound) return NotFound();
+            if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
 
             return NoContent();
         }

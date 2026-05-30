@@ -143,7 +143,8 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
-| Role-Based Access Control (RBAC) & Demo Sandbox | ✅ Complete (Phase 18) |
+| CQRS Architecture Migration with MediatR | ✅ Complete (Phase 18.2) |
+| Role-Based Access Control (RBAC) & Demo Sandbox | ✅ Complete (Phase 18.1) |
 | Enterprise Azure Deployment & CI/CD | ✅ Complete (Phase 17) |
 | Dynamic QR Generation & Printing | ✅ Complete (Phase 16) |
 | Board & Tool CRUD Operations | ✅ Complete (Phase 15) |

@@ -271,3 +271,17 @@ To elevate the user experience, the Angular frontend intercepts these restrictio
 * The `AuthService` decodes the JWT to expose an `isDemoUser()` signal.
 * A persistent "Demo Mode" badge is conditionally rendered across the global navigation headers.
 * When a guest attempts a restricted `DELETE` action, the UI intercepts the click and launches a polished Angular Material Dialog (`DemoRestrictedDialogComponent`) explaining the sandbox limitations, demonstrating robust frontend-to-backend error mapping.
+
+## Phase 18.2: CQRS Architecture Migration (MediatR)
+
+As the backend grew, "Fat Controllers" became an anti-pattern. We migrated the entire API to the Command Query Responsibility Segregation (CQRS) pattern using the MediatR library.
+
+### 1. Decoupling Controllers
+All business logic, database queries, and mapping were completely ripped out of the ASP.NET Core controllers. The controllers (`BoardsController`, `ToolsController`, `WorkersController`, `IncidentsController`) now act purely as HTTP traffic routers. They accept requests and instantly dispatch them via `_mediator.Send()`.
+
+### 2. Isolated Handlers
+Every single endpoint action was converted into an isolated Request/Handler pair. 
+* **Queries:** Read-only operations (e.g., `GetBoardsQuery`) use Entity Framework's `.AsNoTracking()` for maximum read performance.
+* **Commands:** State-mutating operations (e.g., `CreateBoardCommand`) encapsulate their own validation and database `SaveChanges()` logic.
+
+This architectural shift ensures absolute Single Responsibility, making the backend infinitely easier to test, scale, and maintain in an enterprise microservice environment.

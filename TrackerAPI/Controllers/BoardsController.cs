@@ -1,12 +1,11 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TrackerAPI.Data;
-using TrackerAPI.Models;
-using TrackerAPI.DTOs;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using TrackerAPI.Application.Features.Boards.Commands;
+using TrackerAPI.Application.Features.Boards.Queries;
+using TrackerAPI.DTOs;
 
 namespace TrackerAPI.Controllers
 {
@@ -14,89 +13,50 @@ namespace TrackerAPI.Controllers
     [ApiController]
     public class BoardsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        // 1. Inject MediatR instead of the Database!
+        private readonly IMediator _mediator;
 
-        public BoardsController(ApplicationDbContext context)
+        public BoardsController(IMediator mediator)
         {
-            _context = context;
+            _mediator = mediator;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BoardDto>>> GetBoards()
         {
-            var boards = await _context.Boards.ToListAsync();
-            return boards.Select(b => new BoardDto
-            {
-                Id = b.Id,
-                Name = b.Name,
-                Location = b.Location,
-                QrConfig = b.QrConfig
-            }).ToList();
+            // 2. Drop the "Message" in the mailbox
+            var boards = await _mediator.Send(new GetBoardsQuery());
+            return Ok(boards);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<BoardDto>> GetBoard(Guid id)
         {
-            var board = await _context.Boards.FindAsync(id);
+            var board = await _mediator.Send(new GetBoardByIdQuery(id));
 
-            if (board == null)
-            {
-                return NotFound();
-            }
-
-            return new BoardDto
-            {
-                Id = board.Id,
-                Name = board.Name,
-                Location = board.Location,
-                QrConfig = board.QrConfig
-            };
+            // 3. Handle HTTP concepts (like 404 NotFound) here
+            if (board == null) return NotFound();
+            
+            return Ok(board);
         }
 
         [HttpPost]
         public async Task<ActionResult<BoardDto>> PostBoard(CreateBoardDto createBoardDto)
         {
-            var board = new Board
-            {
-                Id = Guid.NewGuid(),
-                Name = createBoardDto.Name,
-                Location = createBoardDto.Location,
-                QrConfig = createBoardDto.QrConfig
-            };
-
-            _context.Boards.Add(board);
-            await _context.SaveChangesAsync();
-
-            var boardDto = new BoardDto
-            {
-                Id = board.Id,
-                Name = board.Name,
-                Location = board.Location,
-                QrConfig = board.QrConfig
-            };
-
-            return CreatedAtAction(nameof(GetBoard), new { id = board.Id }, boardDto);
+            var boardDto = await _mediator.Send(new CreateBoardCommand(createBoardDto));
+            
+            return CreatedAtAction(nameof(GetBoard), new { id = boardDto.Id }, boardDto);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBoard(Guid id, UpdateBoardDto updateBoardDto)
         {
-            if (id != updateBoardDto.Id)
-            {
-                return BadRequest();
-            }
+            if (id != updateBoardDto.Id) return BadRequest();
 
-            var board = await _context.Boards.FindAsync(id);
-            if (board == null)
-            {
-                return NotFound();
-            }
-
-            board.Name = updateBoardDto.Name;
-            board.Location = updateBoardDto.Location;
-            board.QrConfig = updateBoardDto.QrConfig;
-
-            await _context.SaveChangesAsync();
+            // The handler returns 'true' if it found and updated the board
+            var success = await _mediator.Send(new UpdateBoardCommand(updateBoardDto));
+            
+            if (!success) return NotFound();
 
             return NoContent();
         }
@@ -104,16 +64,12 @@ namespace TrackerAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBoard(Guid id)
         {
+            // 4. Authorization stays in the Controller!
             if (User.IsInRole("DemoViewer")) return Forbid();
 
-            var board = await _context.Boards.FindAsync(id);
-            if (board == null)
-            {
-                return NotFound();
-            }
-
-            _context.Boards.Remove(board);
-            await _context.SaveChangesAsync();
+            var success = await _mediator.Send(new DeleteBoardCommand(id));
+            
+            if (!success) return NotFound();
 
             return NoContent();
         }
@@ -121,14 +77,9 @@ namespace TrackerAPI.Controllers
         [HttpPatch("{id}/qr-config")]
         public async Task<IActionResult> PatchQrConfig(Guid id, [FromBody] UpdateQrConfigDto dto)
         {
-            var board = await _context.Boards.FindAsync(id);
-            if (board == null)
-            {
-                return NotFound();
-            }
-
-            board.QrConfig = dto.QrConfig;
-            await _context.SaveChangesAsync();
+            var success = await _mediator.Send(new PatchBoardQrConfigCommand(id, dto));
+            
+            if (!success) return NotFound();
 
             return NoContent();
         }

@@ -1,13 +1,12 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TrackerAPI.Data;
-using TrackerAPI.Models;
-using TrackerAPI.DTOs;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+using TrackerAPI.Application.Features.Workers.Commands;
+using TrackerAPI.Application.Features.Workers.Queries;
+using TrackerAPI.DTOs;
 
 namespace TrackerAPI.Controllers
 {
@@ -16,83 +15,39 @@ namespace TrackerAPI.Controllers
     [ApiController]
     public class WorkersController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IMediator _mediator;
 
-        public WorkersController(ApplicationDbContext context)
+        public WorkersController(IMediator mediator)
         {
-            _context = context;
+            _mediator = mediator;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<WorkerDto>>> GetWorkers([FromQuery] string? role, [FromQuery] bool? isOnShift)
         {
-            var query = _context.Workers.AsQueryable();
-
-            if (!string.IsNullOrEmpty(role))
-            {
-                query = query.Where(w => w.Role == role);
-            }
-
-            if (isOnShift.HasValue)
-            {
-                query = query.Where(w => w.IsOnShift == isOnShift.Value);
-            }
-
-            var workers = await query.ToListAsync();
-            return workers.Select(w => new WorkerDto
-            {
-                Id = w.Id,
-                Name = w.Name,
-                Email = w.Email,
-                IsAvailable = w.IsAvailable,
-                IsOnShift = w.IsOnShift
-            }).ToList();
+            var workers = await _mediator.Send(new GetWorkersQuery(role, isOnShift));
+            return Ok(workers);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<WorkerDto>> GetWorker(Guid id)
         {
-            var worker = await _context.Workers.FindAsync(id);
+            var worker = await _mediator.Send(new GetWorkerByIdQuery(id));
 
             if (worker == null)
             {
                 return NotFound();
             }
 
-            return new WorkerDto
-            {
-                Id = worker.Id,
-                Name = worker.Name,
-                Email = worker.Email,
-                IsAvailable = worker.IsAvailable,
-                IsOnShift = worker.IsOnShift
-            };
+            return Ok(worker);
         }
 
         [HttpPost]
         public async Task<ActionResult<WorkerDto>> PostWorker(CreateWorkerDto createWorkerDto)
         {
-            var worker = new Worker
-            {
-                Id = Guid.NewGuid(),
-                Name = createWorkerDto.Name,
-                Email = createWorkerDto.Email,
-                IsAvailable = createWorkerDto.IsAvailable
-            };
+            var workerDto = await _mediator.Send(new CreateWorkerCommand(createWorkerDto));
 
-            _context.Workers.Add(worker);
-            await _context.SaveChangesAsync();
-
-            var workerDto = new WorkerDto
-            {
-                Id = worker.Id,
-                Name = worker.Name,
-                Email = worker.Email,
-                IsAvailable = worker.IsAvailable,
-                IsOnShift = worker.IsOnShift
-            };
-
-            return CreatedAtAction(nameof(GetWorker), new { id = worker.Id }, workerDto);
+            return CreatedAtAction(nameof(GetWorker), new { id = workerDto.Id }, workerDto);
         }
 
         [HttpPut("{id}")]
@@ -103,17 +58,12 @@ namespace TrackerAPI.Controllers
                 return BadRequest();
             }
 
-            var worker = await _context.Workers.FindAsync(id);
-            if (worker == null)
+            var success = await _mediator.Send(new UpdateWorkerCommand(updateWorkerDto));
+            
+            if (!success)
             {
                 return NotFound();
             }
-
-            worker.Name = updateWorkerDto.Name;
-            worker.Email = updateWorkerDto.Email;
-            worker.IsAvailable = updateWorkerDto.IsAvailable;
-
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -123,14 +73,12 @@ namespace TrackerAPI.Controllers
         {
             if (User.IsInRole("DemoViewer")) return Forbid();
 
-            var worker = await _context.Workers.FindAsync(id);
-            if (worker == null)
+            var success = await _mediator.Send(new DeleteWorkerCommand(id));
+            
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Workers.Remove(worker);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -139,23 +87,13 @@ namespace TrackerAPI.Controllers
         [Authorize(Roles = "QA,DemoViewer")]
         public async Task<ActionResult<WorkerDto>> ToggleShift(Guid id)
         {
-            var worker = await _context.Workers.FindAsync(id);
+            var worker = await _mediator.Send(new ToggleWorkerShiftCommand(id));
             if (worker == null)
             {
                 return NotFound();
             }
 
-            worker.IsOnShift = !worker.IsOnShift;
-            await _context.SaveChangesAsync();
-
-            return Ok(new WorkerDto
-            {
-                Id = worker.Id,
-                Name = worker.Name,
-                Email = worker.Email,
-                IsAvailable = worker.IsAvailable,
-                IsOnShift = worker.IsOnShift
-            });
+            return Ok(worker);
         }
     }
 }
