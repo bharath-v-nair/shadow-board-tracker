@@ -7,8 +7,33 @@ on:
   workflow_dispatch:
 
 jobs:
+  # GATE: backend integration tests must pass before anything deploys.
+  # If a test fails, this job fails, and `needs: test` blocks build-and-deploy.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run xUnit Integration Tests
+        run: dotnet test TrackerAPI.Tests/TrackerAPI.Tests.csproj --configuration Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+          if-no-files-found: ignore
+
   build-and-deploy:
     runs-on: ubuntu-latest
+    needs: test  # <-- the gate: deploy only runs if `test` succeeded
 
     steps:
       # 1. Download your code onto the GitHub server

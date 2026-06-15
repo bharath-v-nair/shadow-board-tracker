@@ -101,7 +101,20 @@ app.MapFallbackToFile("index.html");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    // Relational providers (SQL Server) apply EF migrations. The in-memory provider
+    // used by integration tests is not relational, so we just ensure the store exists
+    // (this also applies HasData seed data for the in-memory case).
+    if (db.Database.IsRelational())
+    {
+        db.Database.Migrate();
+    }
+    else
+    {
+        db.Database.EnsureCreated();
+    }
     DbInitializer.Initialize(db);
 }
 app.Run();
+
+// Exposed so the integration test project (WebApplicationFactory<Program>) can boot the real app.
+public partial class Program { }
