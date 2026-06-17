@@ -34,12 +34,14 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
         private readonly ILogger<ReopenIncidentCommandHandler> _logger;
+        private readonly IIncidentNotifier _notifier;
 
-        public ReopenIncidentCommandHandler(ApplicationDbContext context, IEmailService emailService, ILogger<ReopenIncidentCommandHandler> logger)
+        public ReopenIncidentCommandHandler(ApplicationDbContext context, IEmailService emailService, ILogger<ReopenIncidentCommandHandler> logger, IIncidentNotifier notifier)
         {
             _context = context;
             _emailService = emailService;
             _logger = logger;
+            _notifier = notifier;
         }
 
         public async Task<ReopenIncidentResult> Handle(ReopenIncidentCommand request, CancellationToken cancellationToken)
@@ -63,6 +65,9 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
             incident.ResolvedAt = null;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Live-move the card back into "Alerts" on every dashboard.
+            await _notifier.IncidentChangedAsync(incident.Id, cancellationToken);
 
             try
             {

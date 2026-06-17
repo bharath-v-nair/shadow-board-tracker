@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using TrackerAPI.Data;
+using TrackerAPI.Interfaces;
 using TrackerAPI.Models;
 
 namespace TrackerAPI.Application.Features.Incidents.Commands
@@ -27,10 +28,12 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
     public class ResolveIncidentCommandHandler : IRequestHandler<ResolveIncidentCommand, ResolveIncidentResult>
     {
         private readonly ApplicationDbContext _context;
+        private readonly IIncidentNotifier _notifier;
 
-        public ResolveIncidentCommandHandler(ApplicationDbContext context)
+        public ResolveIncidentCommandHandler(ApplicationDbContext context, IIncidentNotifier notifier)
         {
             _context = context;
+            _notifier = notifier;
         }
 
         public async Task<ResolveIncidentResult> Handle(ResolveIncidentCommand request, CancellationToken cancellationToken)
@@ -50,6 +53,9 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
             incident.ResolvedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Live-move the card from "Alerts" to "Pending" on every dashboard.
+            await _notifier.IncidentChangedAsync(incident.Id, cancellationToken);
 
             return new ResolveIncidentResult { IsSuccess = true };
         }

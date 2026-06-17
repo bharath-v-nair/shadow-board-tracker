@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using TrackerAPI.Data;
+using TrackerAPI.Interfaces;
 using TrackerAPI.Models;
 
 namespace TrackerAPI.Application.Features.Incidents.Commands
@@ -27,10 +28,12 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
     public class VerifyIncidentCommandHandler : IRequestHandler<VerifyIncidentCommand, VerifyIncidentResult>
     {
         private readonly ApplicationDbContext _context;
+        private readonly IIncidentNotifier _notifier;
 
-        public VerifyIncidentCommandHandler(ApplicationDbContext context)
+        public VerifyIncidentCommandHandler(ApplicationDbContext context, IIncidentNotifier notifier)
         {
             _context = context;
+            _notifier = notifier;
         }
 
         public async Task<VerifyIncidentResult> Handle(VerifyIncidentCommand request, CancellationToken cancellationToken)
@@ -49,6 +52,9 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
             incident.Status = IncidentStatus.Resolved;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Live-move the card into "History" on every dashboard.
+            await _notifier.IncidentChangedAsync(incident.Id, cancellationToken);
 
             return new VerifyIncidentResult { IsSuccess = true };
         }

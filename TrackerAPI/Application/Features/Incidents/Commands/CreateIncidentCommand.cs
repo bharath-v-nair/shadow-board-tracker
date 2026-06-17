@@ -38,12 +38,14 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
         private readonly ILogger<CreateIncidentCommandHandler> _logger;
+        private readonly IIncidentNotifier _notifier;
 
-        public CreateIncidentCommandHandler(ApplicationDbContext context, IEmailService emailService, ILogger<CreateIncidentCommandHandler> logger)
+        public CreateIncidentCommandHandler(ApplicationDbContext context, IEmailService emailService, ILogger<CreateIncidentCommandHandler> logger, IIncidentNotifier notifier)
         {
             _context = context;
             _emailService = emailService;
             _logger = logger;
+            _notifier = notifier;
         }
 
         public async Task<CreateIncidentResult> Handle(CreateIncidentCommand request, CancellationToken cancellationToken)
@@ -74,6 +76,9 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
 
             _context.Incidents.Add(incident);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Push the new incident to every connected dashboard so the card appears live.
+            await _notifier.IncidentChangedAsync(incident.Id, cancellationToken);
 
             try
             {

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TrackerAPI.Data;
 using TrackerAPI.DTOs;
+using TrackerAPI.Interfaces;
 
 namespace TrackerAPI.Application.Features.Incidents.Commands
 {
@@ -22,10 +23,12 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
     public class UpdateIncidentCommandHandler : IRequestHandler<UpdateIncidentCommand, bool>
     {
         private readonly ApplicationDbContext _context;
+        private readonly IIncidentNotifier _notifier;
 
-        public UpdateIncidentCommandHandler(ApplicationDbContext context)
+        public UpdateIncidentCommandHandler(ApplicationDbContext context, IIncidentNotifier notifier)
         {
             _context = context;
+            _notifier = notifier;
         }
 
         public async Task<bool> Handle(UpdateIncidentCommand request, CancellationToken cancellationToken)
@@ -40,6 +43,9 @@ namespace TrackerAPI.Application.Features.Incidents.Commands
             incident.Status = request.Dto.Status;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Push the edited incident so dashboards re-slice into the correct tab live.
+            await _notifier.IncidentChangedAsync(incident.Id, cancellationToken);
 
             return true;
         }

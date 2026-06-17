@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +11,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../services/api.service';
 import { Incident } from '../../models/incident.model';
 import { AuthService } from '../../services/auth.service';
+import { RealtimeService } from '../../services/realtime.service';
 import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 
 @Component({
@@ -202,11 +204,13 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
     </div>
   `
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private router = inject(Router);
   public auth = inject(AuthService);
   private dialog = inject(MatDialog);
+  private realtime = inject(RealtimeService);
+  private destroyRef = inject(DestroyRef);
 
   globalIncidents = signal<Incident[]>([]);
   loading = signal<boolean>(true);
@@ -217,16 +221,50 @@ export class DashboardComponent implements OnInit {
   resolvedIncidents = computed(() => this.globalIncidents().filter(i => i.status === 'Resolved' || i.status === 2 as any));
 
   ngOnInit() {
+    // Wire the live streams BEFORE connecting. The socket only opens after the initial
+    // fetch resolves (below), so no push can arrive before the baseline is set — that
+    // avoids a race where a push gets overwritten by the initial .set(data).
+    this.realtime.incidentChanged$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(incident => this.upsertIncident(incident));
+
+    this.realtime.incidentDeleted$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(id => this.removeIncident(id));
+
     this.api.getAllGlobalIncidents().subscribe({
       next: (data) => {
         this.globalIncidents.set(data);
         this.loading.set(false);
+        // Baseline is in place — now go live.
+        this.realtime.start();
       },
       error: (err) => {
         console.error('Failed to fetch global incidents', err);
         this.loading.set(false);
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.realtime.stop();
+  }
+
+  /** Replaces an existing incident in place, or prepends a brand-new one (newest first). */
+  private upsertIncident(incoming: Incident) {
+    this.globalIncidents.update(list => {
+      const index = list.findIndex(i => i.id === incoming.id);
+      if (index === -1) {
+        return [incoming, ...list];
+      }
+      const next = [...list];
+      next[index] = incoming;
+      return next;
+    });
+  }
+
+  private removeIncident(id: string) {
+    this.globalIncidents.update(list => list.filter(i => i.id !== id));
   }
 
   goToBoard(boardId?: string) {

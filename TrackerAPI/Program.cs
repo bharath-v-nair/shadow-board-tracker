@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json;
 using TrackerAPI.Data;
 using TrackerAPI.Interfaces;
 using Azure.Identity;
 using TrackerAPI.Services;
+using TrackerAPI.Hubs;
 using TrackerAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +34,18 @@ builder.Services.AddControllers();
 
 //MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
+// SignalR for real-time incident push. Force camelCase on the hub payload so pushed
+// objects match the REST API's casing (and the Angular Incident model's field names) —
+// SignalR's JSON protocol does not camelCase by default, the MVC pipeline does.
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
+
+// Broadcasts incident changes from the command handlers to all connected clients.
+builder.Services.AddScoped<IIncidentNotifier, IncidentNotifier>();
 
 if (!builder.Environment.IsDevelopment())
 {
@@ -61,6 +75,23 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = false,
         ClockSkew = TimeSpan.Zero
     };
+
+    // WebSocket gotcha: browsers can't set an Authorization header on a WebSocket, so the
+    // SignalR client passes the JWT in the "access_token" query string (via accessTokenFactory).
+    // Pull it out — but ONLY for /hubs paths, so normal /api requests still use the header.
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 var app = builder.Build();
@@ -79,11 +110,28 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
 
-// app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-app.UseCors(policy => policy
-    .AllowAnyOrigin()
-    .AllowAnyMethod()
-    .WithHeaders("Authorization", "Content-Type","Accept"));
+// CORS + SignalR gotcha: a browser refuses AllowAnyOrigin("*") together with credentials,
+// and the SignalR client sends credentials by default. In THIS project the Angular dev
+// proxy (proxy.conf.json) forwards /api and /hubs server-side, so the browser already sees
+// same-origin and CORS never actually fires; production is a unified same-origin SPA. We
+// still make the policy credential-safe per environment as defense-in-depth in case the SPA
+// is ever pointed directly at the API cross-origin.
+if (app.Environment.IsDevelopment())
+{
+    // Reflect the caller's origin (instead of "*") so AllowCredentials is legal for SignalR.
+    app.UseCors(policy => policy
+        .SetIsOriginAllowed(_ => true)
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
+}
+else
+{
+    app.UseCors(policy => policy
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .WithHeaders("Authorization", "Content-Type", "Accept"));
+}
 
 
 
@@ -93,6 +141,10 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 app.MapControllers();
+
+// Map the hub BEFORE the SPA fallback, otherwise MapFallbackToFile would swallow the
+// /hubs/incidents route and serve index.html instead of completing the negotiate handshake.
+app.MapHub<IncidentHub>("/hubs/incidents");
 
 app.MapFallbackToFile("index.html");
 

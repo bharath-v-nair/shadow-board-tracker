@@ -143,6 +143,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Real-Time Sync (SignalR / WebSockets) | ✅ Complete (Phase 20) |
 | xUnit Integration Testing + CI Pipeline Gating | ✅ Complete (Phase 19) |
 | CQRS Architecture Migration with MediatR | ✅ Complete (Phase 18.2) |
 | Role-Based Access Control (RBAC) & Demo Sandbox | ✅ Complete (Phase 18.1) |
