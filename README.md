@@ -143,6 +143,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Frontend Depth: Theming, Dark Mode, Profile & Search | ✅ Complete (Phase 21) |
 | Real-Time Sync (SignalR / WebSockets) | ✅ Complete (Phase 20) |
 | xUnit Integration Testing + CI Pipeline Gating | ✅ Complete (Phase 19) |
 | CQRS Architecture Migration with MediatR | ✅ Complete (Phase 18.2) |
