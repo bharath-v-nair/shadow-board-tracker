@@ -12,16 +12,16 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatBottomSheetModule],
   template: `
-    <div class="max-w-md mx-auto h-screen flex flex-col bg-gray-50 relative overflow-hidden">
+    <div class="max-w-md mx-auto h-screen flex flex-col sb-page relative overflow-hidden">
       <!-- Top App Bar -->
-      <header class="bg-white px-4 py-3 flex items-center shadow-sm z-10">
+      <header class="sb-surface border-b sb-border px-4 py-3 flex items-center shadow-sm z-10" style="padding-top: max(0.75rem, env(safe-area-inset-top));">
         <!-- Avatar Touch Target -->
-        <button (click)="openProfileMenu()" class="w-12 h-12 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0 border bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
-          <mat-icon class="text-gray-500">person</mat-icon>
+        <button (click)="openProfileMenu()" aria-label="Open profile menu" class="w-12 h-12 rounded-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-brand)] flex-shrink-0 border sb-border sb-surface-2 flex items-center justify-center hover:brightness-95 transition">
+          <mat-icon class="sb-text-muted">person</mat-icon>
         </button>
-        
-        <!-- AI Search Pill -->
-        <div class="rounded-full bg-gray-100 flex-1 ml-3 px-4 py-3 flex items-center justify-between text-gray-500 cursor-text">
+
+        <!-- Search Pill -->
+        <div class="rounded-full sb-surface-2 flex-1 ml-3 px-4 py-3 flex items-center justify-between sb-text-subtle cursor-text">
           <span class="text-sm font-medium">Ask AI or Search...</span>
           <mat-icon class="text-blue-500" style="font-size: 20px; width: 20px; height: 20px;">auto_awesome</mat-icon>
         </div>
@@ -33,7 +33,7 @@ import { AuthService } from '../../services/auth.service';
       </main>
 
       <!-- Bottom Navigation -->
-      <nav class="absolute bottom-0 w-full bg-white border-t border-slate-100 shadow-[0_-8px_24px_-4px_rgba(0,0,0,0.08)] flex items-end z-20" style="height: 68px; padding-bottom: env(safe-area-inset-bottom);">
+      <nav class="absolute bottom-0 w-full sb-surface border-t sb-border shadow-[0_-8px_24px_-4px_rgba(0,0,0,0.08)] flex items-end z-20" style="height: 68px; padding-bottom: env(safe-area-inset-bottom);">
         
         <!-- Left: Home -->
         <button class="group relative flex flex-col items-center justify-center focus:outline-none transition-all duration-200 flex-1 h-full pb-2"

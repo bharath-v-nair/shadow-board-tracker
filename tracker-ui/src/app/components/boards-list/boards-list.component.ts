@@ -15,6 +15,7 @@ import { BoardBottomSheetComponent } from '../board-bottom-sheet/board-bottom-sh
 import { QrCustomizerDialogComponent } from '../qr-customizer-dialog/qr-customizer-dialog.component';
 import { AuthService } from '../../services/auth.service';
 import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
+import { listStagger, prefersReducedMotion } from '../../shared/animations';
 
 @Component({
   selector: 'app-boards-list',
@@ -31,15 +32,16 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
     MatBottomSheetModule,
     MatDialogModule
   ],
+  animations: [listStagger],
   template: `
     <!-- Wrapper gives room for FAB -->
     <div class="relative min-h-screen pb-24">
       <header class="mb-8 mt-2 flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-bold text-gray-800 m-0">Shadow Boards</h1>
-          <p class="text-gray-500 m-0 mt-1">Select a board to view tools</p>
+          <h1 class="text-3xl font-bold sb-text-strong m-0">Shadow Boards</h1>
+          <p class="sb-text-muted m-0 mt-1">Select a board to view tools</p>
         </div>
-        
+
         @if (auth.isDemoUser()) {
           <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
             <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
@@ -48,21 +50,33 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
       </header>
 
       @if (loading()) {
-        <div class="flex justify-center mt-20">
-          <mat-spinner diameter="40"></mat-spinner>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (row of [1,2,3,4]; track row) {
+            <div class="sb-card p-5 h-32">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="sb-skeleton h-10 w-10 rounded-full"></div>
+                <div class="flex-1">
+                  <div class="sb-skeleton h-4 w-3/4 mb-2"></div>
+                  <div class="sb-skeleton h-3 w-1/2"></div>
+                </div>
+              </div>
+              <div class="sb-skeleton h-3 w-20 ml-auto"></div>
+            </div>
+          }
         </div>
       } @else {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" [@listStagger]="boards().length" [@.disabled]="reducedMotion">
           @for (board of boards(); track board.id) {
             <mat-card
-              class="hover:shadow-md transition-shadow cursor-pointer border-t-4 border-t-blue-500 h-full flex flex-col"
+              class="sb-card-hover cursor-pointer border-t-4 h-full flex flex-col"
+              style="border-top-color: var(--sb-brand);"
               (click)="goToBoard(board.id)"
               id="board-card-{{ board.id }}"
             >
               <mat-card-header class="mb-4">
-                <mat-icon mat-card-avatar class="text-blue-500 mt-1">dashboard</mat-icon>
-                <mat-card-title class="text-xl font-bold text-gray-800">{{ board.name }}</mat-card-title>
-                <mat-card-subtitle class="text-gray-500">{{ board.location }}</mat-card-subtitle>
+                <mat-icon mat-card-avatar class="sb-brand-text mt-1">dashboard</mat-icon>
+                <mat-card-title class="text-xl font-bold sb-text-strong">{{ board.name }}</mat-card-title>
+                <mat-card-subtitle class="sb-text-muted">{{ board.location }}</mat-card-subtitle>
 
                 <!-- 3-dot overflow menu -->
                 <button
@@ -92,15 +106,18 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
               </mat-card-header>
 
               <mat-card-actions align="end" class="mt-auto">
-                <button mat-button class="text-blue-600 font-semibold tracking-wider">VIEW TOOLS</button>
+                <button mat-button class="sb-brand-text font-semibold tracking-wider">VIEW TOOLS</button>
               </mat-card-actions>
             </mat-card>
           }
 
           @if (boards().length === 0) {
-            <div class="col-span-full text-center py-12 text-gray-500 bg-gray-50 rounded-lg">
-              <mat-icon class="text-4xl mb-2 opacity-50">inbox</mat-icon>
-              <p>No boards yet. Tap <strong>+</strong> to add the first one.</p>
+            <div class="col-span-full sb-empty">
+              <div class="sb-surface-2 p-4 rounded-full mb-4 shadow-sm">
+                <mat-icon class="text-3xl sb-text-subtle block">inbox</mat-icon>
+              </div>
+              <p class="font-medium sb-text-muted">No boards yet.</p>
+              <p class="text-xs mt-1 sb-text-subtle">Tap the <strong>+</strong> button to add your first shadow board.</p>
             </div>
           }
         </div>
@@ -117,11 +134,7 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
         <mat-icon>add</mat-icon>
       </button>
     </div>
-  `,
-  styles: [`
-    .border-t-primary { border-top-color: var(--mat-sys-primary); }
-    .text-primary { color: var(--mat-sys-primary); }
-  `]
+  `
 })
 export class BoardsListComponent implements OnInit {
   private api = inject(ApiService);
@@ -130,6 +143,8 @@ export class BoardsListComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   public auth = inject(AuthService);
+
+  readonly reducedMotion = prefersReducedMotion();
 
   boards = signal<Board[]>([]);
   loading = signal<boolean>(true);

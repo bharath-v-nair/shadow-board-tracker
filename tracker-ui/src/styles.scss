@@ -11,11 +11,14 @@
 
 html {
   height: 100%;
+  // Azure stays the primary (the app's blue chrome — nav, FAB, links). The brand orange
+  // rides in as the M3 tertiary so accents/highlights pick it up automatically. Exact
+  // brand hue lives in --sb-brand below; the palette is just for Material-generated tones.
   @include mat.theme(
     (
       color: (
         primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        tertiary: mat.$orange-palette,
       ),
       typography: Roboto,
       density: 0,
@@ -24,22 +27,167 @@ html {
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
+  // Application color mode. The ThemeService flips this between `light` and `dark`
+  // at runtime (Phase 21.3); Material's `--mat-sys-*` tokens follow it automatically.
   color-scheme: light;
 
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
+  // Drive the app shell off our own design tokens (defined below) so a single place
+  // controls light/dark. Falls back to Material's system surface tokens.
+  background-color: var(--sb-bg);
+  color: var(--sb-text);
   font: var(--mat-sys-body-medium);
 
   // Reset the user agent margin.
   margin: 0;
   height: 100%;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   DESIGN TOKENS  (single source of truth for surfaces, text, status, motion)
+   Light values live in :root. Dark overrides are added in Phase 21.3 under
+   `html.dark`. Components reference these via the `.sb-*` utility classes so
+   dark mode is "flip the tokens", not "rewrite every component".
+   ──────────────────────────────────────────────────────────────────────────── */
+:root {
+  // Brand
+  --sb-brand: #e56a14;
+  --sb-brand-strong: #c65a0f;
+  --sb-brand-soft: #fdefe4;
+  --sb-brand-on: #ffffff;
+
+  // Surfaces
+  --sb-bg: #f5f6f8;
+  --sb-surface: #ffffff;
+  --sb-surface-2: #eef1f5; // icon pills / subtle raised chips
+  --sb-header-bg: rgba(255, 255, 255, 0.82);
+  --sb-border: #e4e8ee;
+  --sb-border-strong: #d3d9e2;
+
+  // Text
+  --sb-text: #0f172a;        // headings
+  --sb-text-muted: #475569;  // body
+  --sb-text-subtle: #7c8798; // captions / labels (raised from slate-400 for contrast)
+
+  // Status (semantic — reused everywhere: Open=red, PendingReview=amber, Resolved=green)
+  --sb-open: #e11d48;
+  --sb-open-bg: #fff1f2;
+  --sb-open-fg: #be123c;
+  --sb-open-border: #fecdd3;
+
+  --sb-pending: #d97706;
+  --sb-pending-bg: #fffbeb;
+  --sb-pending-fg: #b45309;
+  --sb-pending-border: #fde68a;
+
+  --sb-resolved: #059669;
+  --sb-resolved-bg: #ecfdf5;
+  --sb-resolved-fg: #047857;
+  --sb-resolved-border: #a7f3d0;
+
+  // Shape & elevation
+  --sb-radius: 1rem;
+  --sb-radius-sm: 0.625rem;
+  --sb-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05);
+  --sb-shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.10), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
+  --sb-shadow-lg: 0 12px 28px -6px rgba(15, 23, 42, 0.16);
+}
+
+/* ── Surface / text utility classes ──────────────────────────────────────── */
+.sb-page { background: var(--sb-bg); color: var(--sb-text); }
+.sb-surface { background: var(--sb-surface); }
+.sb-surface-2 { background: var(--sb-surface-2); }
+.sb-card {
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius);
+  box-shadow: var(--sb-shadow-sm);
+}
+.sb-card-hover { transition: box-shadow .25s ease, transform .25s ease; }
+.sb-card-hover:hover { box-shadow: var(--sb-shadow-lg); transform: translateY(-2px); }
+.sb-header {
+  background: var(--sb-header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--sb-border);
+}
+.sb-border { border-color: var(--sb-border) !important; }
+.sb-text-strong { color: var(--sb-text) !important; }
+.sb-text-muted  { color: var(--sb-text-muted) !important; }
+.sb-text-subtle { color: var(--sb-text-subtle) !important; }
+.sb-brand-text  { color: var(--sb-brand) !important; }
+
+/* ── Status chips ────────────────────────────────────────────────────────── */
+.sb-chip {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .2rem .6rem; border-radius: 9999px;
+  font-size: .68rem; font-weight: 700; line-height: 1;
+  text-transform: uppercase; letter-spacing: .04em;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.sb-chip--open     { background: var(--sb-open-bg);     color: var(--sb-open-fg);     border-color: var(--sb-open-border); }
+.sb-chip--pending  { background: var(--sb-pending-bg);  color: var(--sb-pending-fg);  border-color: var(--sb-pending-border); }
+.sb-chip--resolved { background: var(--sb-resolved-bg); color: var(--sb-resolved-fg); border-color: var(--sb-resolved-border); }
+
+/* Status left-accent bars */
+.sb-accent--open     { background: linear-gradient(to bottom, #fb7185, var(--sb-open)); }
+.sb-accent--pending  { background: linear-gradient(to bottom, #fbbf24, var(--sb-pending)); }
+.sb-accent--resolved { background: linear-gradient(to bottom, #34d399, var(--sb-resolved)); }
+.sb-accent--brand    { background: linear-gradient(to bottom, #f6a568, var(--sb-brand)); }
+
+/* ── Skeleton loaders (replace blank spinners) ───────────────────────────── */
+.sb-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--sb-surface-2);
+  border-radius: var(--sb-radius-sm);
+}
+.sb-skeleton::after {
+  content: "";
+  position: absolute; inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: sb-shimmer 1.4s infinite;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.sb-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 3rem 1rem;
+  border: 1px dashed var(--sb-border-strong); border-radius: var(--sb-radius);
+  color: var(--sb-text-muted); background: color-mix(in srgb, var(--sb-surface) 60%, transparent);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────── */
+@keyframes sb-shimmer { 100% { transform: translateX(100%); } }
+@keyframes sb-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.sb-animate-in { animation: sb-fade-up .28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Named view transition for route changes (withViewTransitions in app.config). */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: .22s; }
+
+/* Accessibility: honor the user's reduced-motion preference (CSS-driven motion).
+   Angular's JS animations are gated separately via [@.disabled] in components. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .sb-skeleton::after { animation: none; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Visible keyboard focus for our custom (non-Material) interactive elements. */
+:where(button, a, [tabindex], input, .sb-focusable):focus-visible {
+  outline: 2px solid var(--sb-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* You can add global styles to this file, and also import other style files */
 
 /* QR Code Engine Print Strategy */
@@ -47,11 +195,11 @@ body {
   body * {
     visibility: hidden;
   }
-  
+
   #qr-print-region, #qr-print-region * {
     visibility: visible;
   }
-  
+
   #qr-print-region {
     position: absolute;
     left: 50%;
@@ -64,7 +212,7 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
+
   /* Hide the dialog backdrop and shell completely so only the QR region remains */
   .cdk-overlay-container,
   .cdk-global-overlay-wrapper {
