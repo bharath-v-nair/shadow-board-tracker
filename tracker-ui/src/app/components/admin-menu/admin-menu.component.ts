@@ -35,7 +35,7 @@ import { AuthService } from '../../services/auth.service';
           <span matListItemTitle class="font-medium text-gray-700">DataPoints</span>
         </a>
         
-        <a mat-list-item (click)="closeMenu()">
+        <a mat-list-item (click)="goToProfile()">
           <mat-icon matListItemIcon class="text-gray-500">person</mat-icon>
           <span matListItemTitle class="font-medium text-gray-700">Profile Info</span>
         </a>
@@ -61,6 +61,11 @@ export class AdminMenuComponent {
 
   goToWorkers(): void {
     this.router.navigate(['/workers']);
+    this.closeMenu();
+  }
+
+  goToProfile(): void {
+    this.router.navigate(['/profile']);
     this.closeMenu();
   }
 

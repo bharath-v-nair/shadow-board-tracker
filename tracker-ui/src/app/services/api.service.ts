@@ -76,6 +76,10 @@ export class ApiService {
   }
 
   // ── Workers ──────────────────────────────────────────────
+  getCurrentWorker(): Observable<Worker> {
+    return this.http.get<Worker>(`${this.apiUrl}/workers/me`);
+  }
+
   getWorkers(role?: string, isOnShift?: boolean): Observable<Worker[]> {
     let params = new HttpParams();
     if (role) {

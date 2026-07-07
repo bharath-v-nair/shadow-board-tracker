@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TrackerAPI.Application.Features.Workers.Commands;
 using TrackerAPI.Application.Features.Workers.Queries;
@@ -27,6 +28,27 @@ namespace TrackerAPI.Controllers
         {
             var workers = await _mediator.Send(new GetWorkersQuery(role, isOnShift));
             return Ok(workers);
+        }
+
+        // Literal "me" segment takes routing precedence over "{id}", so this resolves the
+        // authenticated caller's own profile without a client-supplied id.
+        [HttpGet("me")]
+        public async Task<ActionResult<WorkerDto>> GetCurrentWorker()
+        {
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(idClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var worker = await _mediator.Send(new GetCurrentWorkerQuery(userId));
+
+            if (worker == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(worker);
         }
 
         [HttpGet("{id}")]

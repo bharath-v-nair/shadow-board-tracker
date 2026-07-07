@@ -6,6 +6,7 @@ import { BoardDetailComponent } from './components/board-detail/board-detail.com
 import { WorkersListComponent } from './components/workers-list/workers-list.component';
 import { IncidentDetailComponent } from './components/incident-detail/incident-detail.component';
 import { BoardsListComponent } from './components/boards-list/boards-list.component';
+import { ProfileComponent } from './components/profile/profile.component';
 import { LoginComponent } from './components/login/login.component';
 import { authGuard } from './guards/auth.guard';
 
@@ -19,6 +20,7 @@ export const routes: Routes = [
       { path: 'boards', component: BoardsListComponent },
       { path: 'board/:id', component: BoardDetailComponent },
       { path: 'workers', component: WorkersListComponent },
+      { path: 'profile', component: ProfileComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
