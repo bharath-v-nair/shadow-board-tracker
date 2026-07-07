@@ -13,14 +13,14 @@ import { SettingsSheetComponent } from '../settings-sheet/settings-sheet.compone
   imports: [CommonModule, MatListModule, MatIconModule],
   template: `
     <div class="pb-4 sb-surface">
-      <!-- Header -->
+      <!-- Header — the signed-in user (read from the JWT) -->
       <div class="px-6 py-4 flex items-center border-b sb-border">
         <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl mr-4 flex-shrink-0 sb-brand-text" style="background: var(--sb-brand-soft);">
-          QA
+          {{ auth.getInitials() }}
         </div>
-        <div>
-          <h2 class="text-lg font-bold sb-text-strong m-0 leading-tight">QA Inspector</h2>
-          <p class="text-sm sb-text-subtle m-0">nairbharathofficial&#64;gmail.com</p>
+        <div class="min-w-0">
+          <h2 class="text-lg font-bold sb-text-strong m-0 leading-tight truncate">{{ auth.getName() || roleLabel() }}</h2>
+          <p class="text-sm sb-text-subtle m-0 truncate">{{ auth.getEmail() || roleLabel() }}</p>
         </div>
       </div>
 
@@ -60,7 +60,15 @@ export class AdminMenuComponent {
   private bottomSheetRef = inject(MatBottomSheetRef<AdminMenuComponent>);
   private bottomSheet = inject(MatBottomSheet);
   private router = inject(Router);
-  private authService = inject(AuthService);
+  auth = inject(AuthService);
+
+  roleLabel(): string {
+    const role = this.auth.getRole();
+    if (role === 'QA') return 'QA Inspector';
+    if (role === 'DemoViewer') return 'Demo Viewer';
+    if (role === 'Worker') return 'Floor Worker';
+    return 'Account';
+  }
 
   closeMenu(): void {
     this.bottomSheetRef.dismiss();
@@ -82,7 +90,7 @@ export class AdminMenuComponent {
   }
 
   signOut(): void {
-    this.authService.clearToken();
+    this.auth.clearToken();
     this.closeMenu();
     this.router.navigate(['/login']);
   }

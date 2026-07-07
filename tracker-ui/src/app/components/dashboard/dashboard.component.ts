@@ -23,10 +23,7 @@ import { listStagger, prefersReducedMotion } from '../../shared/animations';
   template: `
     <div class="max-w-md mx-auto min-h-screen sb-page pb-20 font-sans">
       <header class="sb-header px-6 py-6 shadow-sm sticky top-0 z-20 flex justify-between items-center">
-        <div>
-          <h1 class="text-3xl font-extrabold tracking-tight sb-text-strong m-0">Command Center</h1>
-          <p class="sb-text-muted text-sm m-0 mt-1 font-medium">Global QA Dashboard</p>
-        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight sb-text-strong m-0">Command Center</h1>
         @if (auth.isDemoUser()) {
           <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
             <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode

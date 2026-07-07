@@ -26,9 +26,12 @@ import { fadeSlide, prefersReducedMotion } from '../../shared/animations';
     <div class="max-w-md mx-auto h-screen flex flex-col sb-page relative overflow-hidden">
       <!-- Top App Bar -->
       <header class="sb-surface border-b sb-border px-4 py-3 flex items-center shadow-sm z-10" style="padding-top: max(0.75rem, env(safe-area-inset-top));">
-        <!-- Avatar Touch Target -->
-        <button (click)="openProfileMenu()" aria-label="Open profile menu" class="w-12 h-12 rounded-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-brand)] flex-shrink-0 border sb-border sb-surface-2 flex items-center justify-center hover:brightness-95 transition">
-          <mat-icon class="sb-text-muted">person</mat-icon>
+        <!-- Avatar Touch Target — initials of the signed-in user (shared with the profile page;
+             real photos arrive in Phase 25). -->
+        <button (click)="openProfileMenu()" aria-label="Open profile menu"
+                class="w-12 h-12 rounded-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sb-brand)] flex-shrink-0 border sb-border flex items-center justify-center font-bold text-sm sb-brand-text hover:brightness-95 transition"
+                style="background: var(--sb-brand-soft);">
+          {{ authService.getInitials() }}
         </button>
 
         <!-- Search Pill (opens the search overlay; the sparkle is dormant until Phase 28) -->
@@ -78,7 +81,7 @@ import { fadeSlide, prefersReducedMotion } from '../../shared/animations';
                   </div>
                 }
               </div>
-            } @else if (!debounced()?.trim()) {
+            } @else if (!debounced().trim()) {
               <div class="sb-empty mt-4">
                 <mat-icon class="text-3xl sb-text-subtle mb-2">search</mat-icon>
                 <p class="font-medium sb-text-muted">Search the floor</p>
@@ -198,7 +201,7 @@ import { fadeSlide, prefersReducedMotion } from '../../shared/animations';
 })
 export class LayoutComponent {
   private bottomSheet = inject(MatBottomSheet);
-  private authService = inject(AuthService);
+  authService = inject(AuthService);
   private router = inject(Router);
   private api = inject(ApiService);
   private searchSvc = inject(SearchService);
