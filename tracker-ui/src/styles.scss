@@ -11,6 +11,12 @@
 
 html {
   height: 100%;
+  // Application color mode lives on <html> so it governs the WHOLE tree (Material's
+  // `--mat-sys-*` tokens resolve via light-dark() against this). ThemeService flips it
+  // to `dark` at runtime; do NOT set color-scheme on <body>, or it would override this
+  // for the app subtree and Material surfaces would stay light in dark mode.
+  color-scheme: light;
+
   // Azure stays the primary (the app's blue chrome — nav, FAB, links). The brand orange
   // rides in as the M3 tertiary so accents/highlights pick it up automatically. Exact
   // brand hue lives in --sb-brand below; the palette is just for Material-generated tones.
@@ -27,10 +33,6 @@ html {
 }
 
 body {
-  // Application color mode. The ThemeService flips this between `light` and `dark`
-  // at runtime (Phase 21.3); Material's `--mat-sys-*` tokens follow it automatically.
-  color-scheme: light;
-
   // Drive the app shell off our own design tokens (defined below) so a single place
   // controls light/dark. Falls back to Material's system surface tokens.
   background-color: var(--sb-bg);
@@ -90,6 +92,48 @@ body {
   --sb-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05);
   --sb-shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.10), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
   --sb-shadow-lg: 0 12px 28px -6px rgba(15, 23, 42, 0.16);
+}
+
+/* ── Dark theme (ThemeService toggles `.dark` on <html>) ──────────────────── */
+html.dark {
+  color-scheme: dark;
+
+  --sb-brand: #f97b28;
+  --sb-brand-strong: #fb8c3f;
+  --sb-brand-soft: rgba(229, 106, 20, 0.16);
+  --sb-brand-on: #1a1207;
+
+  --sb-bg: #0b1220;
+  --sb-surface: #16202f;
+  --sb-surface-2: #22303f;
+  --sb-header-bg: rgba(11, 18, 32, 0.72);
+  --sb-border: #2a3646;
+  --sb-border-strong: #3a475a;
+
+  --sb-text: #f1f5f9;
+  --sb-text-muted: #b7c3d3;
+  --sb-text-subtle: #8695a8;
+
+  --sb-open-bg: rgba(225, 29, 72, 0.16);
+  --sb-open-fg: #fda4af;
+  --sb-open-border: rgba(225, 29, 72, 0.38);
+
+  --sb-pending-bg: rgba(217, 119, 6, 0.16);
+  --sb-pending-fg: #fcd34d;
+  --sb-pending-border: rgba(217, 119, 6, 0.38);
+
+  --sb-resolved-bg: rgba(5, 150, 105, 0.18);
+  --sb-resolved-fg: #6ee7b7;
+  --sb-resolved-border: rgba(5, 150, 105, 0.38);
+
+  --sb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sb-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --sb-shadow-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.6);
+}
+
+/* Tone the skeleton shimmer down on dark so it doesn't flash white. */
+html.dark .sb-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
 }
 
 /* ── Surface / text utility classes ──────────────────────────────────────── */

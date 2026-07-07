@@ -7,6 +7,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 import { Worker } from '../../models/worker.model';
 
 @Component({
@@ -75,6 +76,23 @@ import { Worker } from '../../models/worker.model';
               </mat-slide-toggle>
             </div>
           </div>
+
+          <!-- Appearance -->
+          <div class="sb-card mt-4">
+            <div class="flex items-center gap-3 p-4">
+              <mat-icon class="sb-brand-text">{{ theme.isDark() ? 'dark_mode' : 'light_mode' }}</mat-icon>
+              <div class="flex-1">
+                <p class="text-xs sb-text-subtle m-0 uppercase tracking-wide font-semibold">Appearance</p>
+                <p class="m-0 font-semibold sb-text-muted">{{ theme.isDark() ? 'Dark mode' : 'Light mode' }}</p>
+              </div>
+              <mat-slide-toggle
+                color="primary"
+                [checked]="theme.isDark()"
+                (change)="theme.setDark($event.checked)"
+                aria-label="Toggle dark mode">
+              </mat-slide-toggle>
+            </div>
+          </div>
         } @else {
           <div class="sb-empty mt-6">
             <mat-icon class="text-3xl sb-text-subtle mb-2">person_off</mat-icon>
@@ -91,6 +109,7 @@ export class ProfileComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+  theme = inject(ThemeService);
 
   worker = signal<Worker | null>(null);
   loading = signal<boolean>(true);

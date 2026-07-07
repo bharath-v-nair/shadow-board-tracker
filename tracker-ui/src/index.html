@@ -4,8 +4,23 @@
     <meta charset="utf-8"/>
     <title>TrackerUi</title>
     <base href="/"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
     <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <!-- Apply the saved/preferred theme before first paint to avoid a light-to-dark flash.
+         ThemeService (Angular) reads the same key and keeps this in sync at runtime. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('sb-theme');
+          var dark = saved ? saved === 'dark'
+            : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&amp;display=swap" rel="stylesheet"/>

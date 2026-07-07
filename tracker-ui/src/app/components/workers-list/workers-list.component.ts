@@ -20,14 +20,14 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
   standalone: true,
   imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSlideToggleModule, MatDialogModule, MatSnackBarModule, MatMenuModule],
   template: `
-    <div class="pb-20">
-      <header class="bg-white border-b px-4 py-4 flex items-center shadow-sm sticky top-0 z-10">
-        <button mat-icon-button (click)="goBack()" class="mr-2 text-gray-500 focus:outline-none">
+    <div class="pb-20 sb-page min-h-screen">
+      <header class="sb-header border-b sb-border px-4 py-4 flex items-center shadow-sm sticky top-0 z-10">
+        <button mat-icon-button (click)="goBack()" class="mr-2 sb-text-muted focus:outline-none">
           <mat-icon>arrow_back</mat-icon>
         </button>
         <div>
-          <h1 class="text-xl font-bold text-gray-800 m-0">Shift Roster</h1>
-          <p class="text-gray-500 text-xs m-0 mt-1">Manage active floor workers</p>
+          <h1 class="text-xl font-bold sb-text-strong m-0">Shift Roster</h1>
+          <p class="sb-text-subtle text-xs m-0 mt-1">Manage active floor workers</p>
         </div>
         <div class="flex-1"></div>
         
@@ -50,21 +50,21 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
       } @else {
         <div class="p-4">
           @for (worker of workers(); track worker.id) {
-            <div class="bg-white p-4 mb-3 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center transition-all hover:shadow-md">
+            <div class="sb-card sb-card-hover p-4 mb-3 flex justify-between items-center">
               <div>
-                <h3 class="font-bold text-gray-800 m-0 text-base">{{ worker.name }}</h3>
-                <p class="text-xs mt-1 font-medium" [ngClass]="worker.isOnShift ? 'text-green-600' : 'text-gray-400'">
+                <h3 class="font-bold sb-text-strong m-0 text-base">{{ worker.name }}</h3>
+                <p class="text-xs mt-1 font-medium" [ngClass]="worker.isOnShift ? 'text-emerald-600' : 'sb-text-subtle'">
                   {{ worker.isOnShift ? 'Active Shift' : 'Off Shift' }}
                 </p>
               </div>
               <div class="flex items-center gap-2">
-                <mat-slide-toggle 
+                <mat-slide-toggle
                   color="primary"
-                  [checked]="worker.isOnShift" 
+                  [checked]="worker.isOnShift"
                   (change)="onToggleShift(worker)">
                 </mat-slide-toggle>
                 <button mat-icon-button [matMenuTriggerFor]="menu">
-                  <mat-icon class="text-gray-500">more_vert</mat-icon>
+                  <mat-icon class="sb-text-subtle">more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
                   <button mat-menu-item (click)="editWorker(worker)">
@@ -80,9 +80,9 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
             </div>
           }
           @if (workers().length === 0) {
-            <div class="text-center py-10 text-gray-400">
-              <mat-icon class="text-4xl opacity-50 mb-2">group_off</mat-icon>
-              <p>No workers found.</p>
+            <div class="sb-empty">
+              <mat-icon class="text-4xl sb-text-subtle mb-2">group_off</mat-icon>
+              <p class="sb-text-muted">No workers found.</p>
             </div>
           }
         </div>

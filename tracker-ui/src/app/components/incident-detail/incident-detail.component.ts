@@ -12,7 +12,7 @@ import { ApiService } from '../../services/api.service';
   standalone: true,
   imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
-    <div class="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
+    <div class="flex flex-col items-center justify-center min-h-screen p-4 sb-page">
       <div class="w-full max-w-md">
         @if (loading()) {
           <div class="flex justify-center my-12">
@@ -25,38 +25,38 @@ import { ApiService } from '../../services/api.service';
           </div>
         } @else if (isResolved()) {
           <mat-card class="text-center p-8 shadow-lg">
-            <div class="mb-6 flex justify-center text-green-500">
+            <div class="mb-6 flex justify-center text-emerald-500">
               <mat-icon style="transform: scale(3); width: 72px; height: 72px;">check_circle</mat-icon>
             </div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Task Resolved!</h2>
-            <p class="text-gray-600">Thank you for keeping the floor safe. You may now close this tab.</p>
+            <h2 class="text-2xl font-bold sb-text-strong mb-2">Task Resolved!</h2>
+            <p class="sb-text-muted">Thank you for keeping the floor safe. You may now close this tab.</p>
           </mat-card>
         } @else if (incident()) {
           <mat-card class="shadow-lg">
-            <mat-card-header class="bg-gray-100 p-4 border-b">
-              <mat-card-title class="text-xl font-bold">Resolve Incident</mat-card-title>
-              <mat-card-subtitle class="mt-1">Please confirm you have returned this tool.</mat-card-subtitle>
+            <mat-card-header class="sb-surface-2 p-4 border-b sb-border">
+              <mat-card-title class="text-xl font-bold sb-text-strong">Resolve Incident</mat-card-title>
+              <mat-card-subtitle class="mt-1 sb-text-muted">Please confirm you have returned this tool.</mat-card-subtitle>
             </mat-card-header>
-            
+
             <mat-card-content class="p-6">
               <div class="mb-4">
-                <p class="text-sm text-gray-500 uppercase tracking-wider font-semibold">Tool Name</p>
-                <p class="text-lg font-medium text-gray-900">{{ incident().toolName || 'Unknown Tool' }}</p>
-              </div>
-              
-              <div class="mb-4">
-                <p class="text-sm text-gray-500 uppercase tracking-wider font-semibold">Board</p>
-                <p class="text-lg font-medium text-gray-900">{{ incident().boardName || 'Unknown Board' }}</p>
+                <p class="text-sm sb-text-subtle uppercase tracking-wider font-semibold">Tool Name</p>
+                <p class="text-lg font-medium sb-text-strong">{{ incident().toolName || 'Unknown Tool' }}</p>
               </div>
 
               <div class="mb-4">
-                <p class="text-sm text-gray-500 uppercase tracking-wider font-semibold">Reported At</p>
-                <p class="text-md text-gray-800">{{ incident().reportedAt | date:'medium' }}</p>
+                <p class="text-sm sb-text-subtle uppercase tracking-wider font-semibold">Board</p>
+                <p class="text-lg font-medium sb-text-strong">{{ incident().boardName || 'Unknown Board' }}</p>
+              </div>
+
+              <div class="mb-4">
+                <p class="text-sm sb-text-subtle uppercase tracking-wider font-semibold">Reported At</p>
+                <p class="text-md sb-text-muted">{{ incident().reportedAt | date:'medium' }}</p>
               </div>
 
               <div class="mb-6">
-                <p class="text-sm text-gray-500 uppercase tracking-wider font-semibold">QA Inspector</p>
-                <p class="text-lg font-medium text-gray-900">{{ incident().reporterName || 'Unknown' }}</p>
+                <p class="text-sm sb-text-subtle uppercase tracking-wider font-semibold">QA Inspector</p>
+                <p class="text-lg font-medium sb-text-strong">{{ incident().reporterName || 'Unknown' }}</p>
               </div>
 
               <button 

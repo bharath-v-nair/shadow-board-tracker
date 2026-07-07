@@ -1,1 +1,5 @@
 @import 'tailwindcss';
+
+/* Make Tailwind's `dark:` variant follow our `.dark` class on <html> (set by
+   ThemeService) instead of the OS `prefers-color-scheme`, so the in-app toggle wins. */
+@custom-variant dark (&:where(.dark, .dark *));

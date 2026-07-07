@@ -15,7 +15,7 @@ type LoginStatus = 'enter-email' | 'loading' | 'enter-code' | 'verifying' | 'err
   standalone: true,
   imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 p-4">
+    <div class="min-h-screen flex items-center justify-center sb-page bg-gradient-to-br from-transparent to-blue-500/5 p-4">
       <div class="max-w-sm w-full">
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
 

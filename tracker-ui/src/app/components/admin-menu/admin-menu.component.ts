@@ -3,45 +3,51 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
-import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { AuthService } from '../../services/auth.service';
+import { SettingsSheetComponent } from '../settings-sheet/settings-sheet.component';
 
 @Component({
   selector: 'app-admin-menu',
   standalone: true,
   imports: [CommonModule, MatListModule, MatIconModule],
   template: `
-    <div class="pb-4">
+    <div class="pb-4 sb-surface">
       <!-- Header -->
-      <div class="px-6 py-4 flex items-center border-b border-gray-100">
-        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl mr-4 flex-shrink-0">
+      <div class="px-6 py-4 flex items-center border-b sb-border">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl mr-4 flex-shrink-0 sb-brand-text" style="background: var(--sb-brand-soft);">
           QA
         </div>
         <div>
-          <h2 class="text-lg font-bold text-gray-800 m-0 leading-tight">QA Inspector</h2>
-          <p class="text-sm text-gray-500 m-0">nairbharathofficial&#64;gmail.com</p>
+          <h2 class="text-lg font-bold sb-text-strong m-0 leading-tight">QA Inspector</h2>
+          <p class="text-sm sb-text-subtle m-0">nairbharathofficial&#64;gmail.com</p>
         </div>
       </div>
 
       <!-- Menu List -->
       <mat-nav-list class="mt-2">
         <a mat-list-item (click)="goToWorkers()">
-          <mat-icon matListItemIcon class="text-gray-500">group</mat-icon>
-          <span matListItemTitle class="font-medium text-gray-700">Manage Workers</span>
+          <mat-icon matListItemIcon class="sb-text-subtle">group</mat-icon>
+          <span matListItemTitle class="font-medium sb-text-muted">Manage Workers</span>
         </a>
-        
+
         <a mat-list-item (click)="closeMenu()">
-          <mat-icon matListItemIcon class="text-gray-500">insights</mat-icon>
-          <span matListItemTitle class="font-medium text-gray-700">DataPoints</span>
+          <mat-icon matListItemIcon class="sb-text-subtle">insights</mat-icon>
+          <span matListItemTitle class="font-medium sb-text-muted">DataPoints</span>
         </a>
-        
+
         <a mat-list-item (click)="goToProfile()">
-          <mat-icon matListItemIcon class="text-gray-500">person</mat-icon>
-          <span matListItemTitle class="font-medium text-gray-700">Profile Info</span>
+          <mat-icon matListItemIcon class="sb-text-subtle">person</mat-icon>
+          <span matListItemTitle class="font-medium sb-text-muted">Profile Info</span>
         </a>
-        
-        <div class="my-2 border-t border-gray-100"></div>
-        
+
+        <a mat-list-item (click)="openSettings()">
+          <mat-icon matListItemIcon class="sb-text-subtle">settings</mat-icon>
+          <span matListItemTitle class="font-medium sb-text-muted">Settings</span>
+        </a>
+
+        <div class="my-2 border-t sb-border"></div>
+
         <a mat-list-item (click)="signOut()">
           <mat-icon matListItemIcon class="text-red-500">logout</mat-icon>
           <span matListItemTitle class="font-bold text-red-600">Sign Out</span>
@@ -52,6 +58,7 @@ import { AuthService } from '../../services/auth.service';
 })
 export class AdminMenuComponent {
   private bottomSheetRef = inject(MatBottomSheetRef<AdminMenuComponent>);
+  private bottomSheet = inject(MatBottomSheet);
   private router = inject(Router);
   private authService = inject(AuthService);
 
@@ -67,6 +74,11 @@ export class AdminMenuComponent {
   goToProfile(): void {
     this.router.navigate(['/profile']);
     this.closeMenu();
+  }
+
+  openSettings(): void {
+    this.closeMenu();
+    this.bottomSheet.open(SettingsSheetComponent, { panelClass: 'rounded-t-2xl' });
   }
 
   signOut(): void {
