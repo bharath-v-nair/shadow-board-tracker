@@ -8,7 +8,9 @@ import { forkJoin } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBottomSheetModule, MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AdminMenuComponent } from '../admin-menu/admin-menu.component';
+import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { SearchService, SearchResultItem } from '../../services/search.service';
@@ -20,7 +22,7 @@ import { fadeSlide, prefersReducedMotion } from '../../shared/animations';
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatBottomSheetModule],
+  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatBottomSheetModule, MatDialogModule],
   animations: [fadeSlide],
   template: `
     <div class="max-w-md mx-auto h-screen flex flex-col sb-page relative overflow-hidden">
@@ -41,6 +43,18 @@ import { fadeSlide, prefersReducedMotion } from '../../shared/animations';
           <mat-icon class="text-blue-500" style="font-size: 20px; width: 20px; height: 20px;">auto_awesome</mat-icon>
         </button>
       </header>
+
+      <!-- Global demo-mode banner: rendered once here so every page flows below it untouched. -->
+      @if (authService.isDemoUser()) {
+        <button (click)="showDemoInfo()"
+                class="w-full flex items-center justify-center gap-1.5 py-1.5 px-4 text-xs font-semibold border-b transition-colors
+                       text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100
+                       dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/25 dark:hover:bg-amber-500/20">
+          <mat-icon style="font-size:15px;width:15px;height:15px;">visibility</mat-icon>
+          <span>Demo mode — some actions are limited.</span>
+          <span class="underline underline-offset-2 opacity-80">Details</span>
+        </button>
+      }
 
       <!-- Main Content Area -->
       <main class="flex-1 overflow-y-auto p-4 pb-24">
@@ -201,6 +215,7 @@ import { fadeSlide, prefersReducedMotion } from '../../shared/animations';
 })
 export class LayoutComponent {
   private bottomSheet = inject(MatBottomSheet);
+  private dialog = inject(MatDialog);
   authService = inject(AuthService);
   private router = inject(Router);
   private api = inject(ApiService);
@@ -282,6 +297,16 @@ export class LayoutComponent {
 
   openProfileMenu() {
     this.bottomSheet.open(AdminMenuComponent);
+  }
+
+  showDemoInfo() {
+    this.dialog.open(DemoRestrictedDialogComponent, {
+      data: {
+        title: 'Demo Mode Active',
+        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
+      },
+      panelClass: 'rounded-2xl'
+    });
   }
 
   signOut() {

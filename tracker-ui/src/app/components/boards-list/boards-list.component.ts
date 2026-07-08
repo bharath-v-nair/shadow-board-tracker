@@ -39,14 +39,8 @@ import { BoardStatus, withBoardHealth } from '../../shared/board-health';
   animations: [listStagger],
   template: `
     <div class="relative min-h-screen pb-24">
-      <header class="mb-6 mt-2 flex justify-between items-center">
+      <header class="mb-6 mt-2">
         <h1 class="text-3xl font-bold sb-text-strong m-0">Shadow Boards</h1>
-
-        @if (auth.isDemoUser()) {
-          <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
-            <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
-          </button>
-        }
       </header>
 
       @if (loading()) {
@@ -286,16 +280,6 @@ export class BoardsListComponent implements OnInit {
         this.snackBar.open(`"${board.name}" deleted.`, 'Close', { duration: 2500 });
       },
       error: () => this.snackBar.open('Failed to delete board.', 'Close', { duration: 3000 })
-    });
-  }
-
-  showDemoInfo() {
-    this.dialog.open(DemoRestrictedDialogComponent, {
-      data: {
-        title: 'Demo Mode Active',
-        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
-      },
-      panelClass: 'rounded-2xl'
     });
   }
 }

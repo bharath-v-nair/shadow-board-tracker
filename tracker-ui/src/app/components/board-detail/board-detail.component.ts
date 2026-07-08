@@ -51,12 +51,6 @@ import { listStagger, prefersReducedMotion } from '../../shared/animations';
         </div>
         
         <div class="ml-auto flex items-center gap-2">
-          @if (authService.isDemoUser()) {
-            <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
-              <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
-            </button>
-          }
-          
           <button mat-icon-button [matMenuTriggerFor]="boardMenu" aria-label="Board options">
             <mat-icon>more_vert</mat-icon>
           </button>
@@ -474,15 +468,5 @@ export class BoardDetailComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/boards']);
-  }
-
-  showDemoInfo() {
-    this.dialog.open(DemoRestrictedDialogComponent, {
-      data: {
-        title: 'Demo Mode Active',
-        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
-      },
-      panelClass: 'rounded-2xl'
-    });
   }
 }

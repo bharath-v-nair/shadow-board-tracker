@@ -30,13 +30,7 @@ import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-re
           <p class="sb-text-subtle text-xs m-0 mt-1">Manage active floor workers</p>
         </div>
         <div class="flex-1"></div>
-        
-        @if (auth.isDemoUser()) {
-          <button (click)="showDemoInfo()" class="mr-3 bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
-            <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
-          </button>
-        }
-        
+
         <button mat-flat-button color="primary" class="!rounded-full" (click)="openAddWorkerDialog()">
           <mat-icon>add</mat-icon>
           Add
@@ -222,15 +216,5 @@ export class WorkersListComponent implements OnInit {
         }
       });
     }
-  }
-
-  showDemoInfo() {
-    this.dialog.open(DemoRestrictedDialogComponent, {
-      data: {
-        title: 'Demo Mode Active',
-        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
-      },
-      panelClass: 'rounded-2xl'
-    });
   }
 }

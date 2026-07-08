@@ -7,14 +7,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../services/api.service';
 import { Incident } from '../../models/incident.model';
 import { Board } from '../../models/board.model';
 import { Worker } from '../../models/worker.model';
 import { AuthService } from '../../services/auth.service';
 import { RealtimeService } from '../../services/realtime.service';
-import { DemoRestrictedDialogComponent } from '../demo-restricted-dialog/demo-restricted-dialog.component';
 import { SkeletonCardComponent } from '../shared/skeleton-card.component';
 import { listStagger, prefersReducedMotion } from '../../shared/animations';
 import { applyIncidentFilters, activeFilterCount, IncidentSort } from '../../shared/incident-filter';
@@ -24,17 +22,12 @@ type DatePreset = 'all' | 'today' | '7d' | '30d';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, MatDialogModule, SkeletonCardComponent],
+  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, SkeletonCardComponent],
   animations: [listStagger],
   template: `
     <div class="max-w-md mx-auto min-h-screen sb-page pb-20 font-sans">
-      <header class="sb-header px-6 py-6 shadow-sm sticky top-0 z-20 flex justify-between items-center">
+      <header class="sb-header px-6 py-6 shadow-sm sticky top-0 z-20">
         <h1 class="text-3xl font-extrabold tracking-tight sb-text-strong m-0">Command Center</h1>
-        @if (auth.isDemoUser()) {
-          <button (click)="showDemoInfo()" class="bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-full text-xs shadow-sm flex items-center gap-1.5 border border-amber-200 hover:bg-amber-200 transition-colors">
-            <mat-icon class="text-[16px] w-[16px] h-[16px]">visibility</mat-icon> Demo Mode
-          </button>
-        }
       </header>
 
       <!-- Tabs -->
@@ -150,7 +143,7 @@ type DatePreset = 'all' | 'today' | '7d' | '30d';
                       <mat-icon class="text-[14px] w-[14px] h-[14px] flex-shrink-0">place</mat-icon>
                       <span class="truncate">{{ incident.boardName || 'Unknown Board' }}</span>
                       <span class="opacity-50">•</span>
-                      <mat-icon class="text-[14px] w-[14px] h-[14px] flex-shrink-0">check_circle</mat-icon>
+                      <mat-icon class="text-[14px] w-[14px] h-[14px] flex-shrink-0">schedule</mat-icon>
                       <span class="whitespace-nowrap">{{ getResolutionTime(incident.reportedAt, incident.resolvedAt) }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 mt-1.5 text-xs sb-text-muted min-w-0">
@@ -217,7 +210,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private router = inject(Router);
   public auth = inject(AuthService);
-  private dialog = inject(MatDialog);
   private realtime = inject(RealtimeService);
   private destroyRef = inject(DestroyRef);
 
@@ -346,15 +338,5 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const mins = diffMins % 60;
     if (hours > 0) return `${hours} hr${hours > 1 ? 's' : ''} ${mins} min${mins !== 1 ? 's' : ''}`;
     return `${mins} min${mins !== 1 ? 's' : ''}`;
-  }
-
-  showDemoInfo() {
-    this.dialog.open(DemoRestrictedDialogComponent, {
-      data: {
-        title: 'Demo Mode Active',
-        message: 'You have full access to create incidents and manage workflows. However, demo users cannot delete boards, tools, or workers.'
-      },
-      panelClass: 'rounded-2xl'
-    });
   }
 }
