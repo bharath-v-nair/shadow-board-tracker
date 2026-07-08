@@ -57,15 +57,15 @@ const CONDITIONS = ['Good', 'Damaged', 'Lost'] as const;
     <div class="px-4 pt-4 pb-8">
       <!-- Handle bar -->
       <div class="flex justify-center mb-4">
-        <div class="w-10 h-1 rounded-full bg-gray-300"></div>
+        <div class="w-10 h-1 rounded-full" style="background: var(--sb-border-strong);"></div>
       </div>
 
       <!-- Title -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-800 m-0">
+        <h2 class="text-xl font-bold sb-text-strong m-0">
           {{ isEditMode ? 'Edit Tool' : 'Add New Tool' }}
         </h2>
-        <button mat-icon-button (click)="dismiss()" aria-label="Close">
+        <button mat-icon-button (click)="dismiss()" aria-label="Close" class="sb-text-muted">
           <mat-icon>close</mat-icon>
         </button>
       </div>

@@ -18,7 +18,7 @@ import { MatInputModule } from '@angular/material/input';
     MatInputModule
   ],
   template: `
-    <h2 mat-dialog-title class="font-bold text-gray-800">{{ isEditMode ? 'Edit Worker' : 'Add New Worker' }}</h2>
+    <h2 mat-dialog-title class="font-bold sb-text-strong">{{ isEditMode ? 'Edit Worker' : 'Add New Worker' }}</h2>
     <mat-dialog-content>
       <form [formGroup]="workerForm" class="flex flex-col gap-4 mt-2">
         <mat-form-field appearance="outline" class="w-full">

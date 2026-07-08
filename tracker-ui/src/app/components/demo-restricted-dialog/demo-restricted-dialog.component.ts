@@ -13,8 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
       <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <mat-icon class="text-3xl text-amber-600">security</mat-icon>
       </div>
-      <h2 class="text-xl font-bold text-slate-800 mb-2 m-0">{{ data.title || 'Action Not Allowed' }}</h2>
-      <p class="text-slate-600 mb-6 text-sm leading-relaxed">
+      <h2 class="text-xl font-bold sb-text-strong mb-2 m-0">{{ data.title || 'Action Not Allowed' }}</h2>
+      <p class="sb-text-muted mb-6 text-sm leading-relaxed">
         {{ data.message || 'Demo users cannot delete boards, tools, and workers.' }}
       </p>
       <button mat-flat-button color="primary" class="w-full h-12 rounded-xl text-sm font-bold" (click)="dialogRef.close()">

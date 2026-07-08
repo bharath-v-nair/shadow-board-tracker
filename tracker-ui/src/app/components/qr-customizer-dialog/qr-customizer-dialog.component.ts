@@ -30,25 +30,25 @@ import { MatSnackBar } from '@angular/material/snack-bar';
         <mat-icon>close</mat-icon>
       </button>
       
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">Generate QR Code</h2>
+      <h2 class="text-2xl font-bold sb-text-strong mb-6">Generate QR Code</h2>
 
       <div class="flex flex-col md:flex-row gap-8">
         <!-- Left: Controls -->
         <div class="flex-1 flex flex-col gap-6 cdk-overlay-container-exclude">
-          <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Print Settings</h3>
-            
+          <div class="sb-surface-2 p-4 rounded-xl border sb-border">
+            <h3 class="text-sm font-semibold sb-text-muted uppercase tracking-wider mb-4">Print Settings</h3>
+
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-2">QR Size (Physical Print)</label>
-              <mat-select [(ngModel)]="config.size" class="w-full bg-white border border-gray-200 rounded px-3 py-2">
+              <label class="block text-sm font-medium sb-text-muted mb-2">QR Size (Physical Print)</label>
+              <mat-select [(ngModel)]="config.size" class="w-full sb-surface border sb-border rounded px-3 py-2">
                 <mat-option [value]="200">Small (200px)</mat-option>
                 <mat-option [value]="300">Medium (300px)</mat-option>
                 <mat-option [value]="400">Large (400px)</mat-option>
               </mat-select>
             </div>
 
-            <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-              <span class="text-sm font-medium text-gray-700">Show Board Name</span>
+            <div class="flex items-center justify-between mt-6 pt-4 border-t sb-border">
+              <span class="text-sm font-medium sb-text-muted">Show Board Name</span>
               <mat-slide-toggle color="primary" [(ngModel)]="config.showLabel"></mat-slide-toggle>
             </div>
           </div>

@@ -25,7 +25,7 @@ import { Tool } from '../../models/tool.model';
   template: `
     <h2 mat-dialog-title class="text-xl font-bold border-b pb-2">Report Missing Tool</h2>
     <mat-dialog-content class="py-6 min-w-[300px]">
-      <p class="mb-4 text-gray-600">Tool: <strong class="text-gray-900">{{ data.tool.name }}</strong></p>
+      <p class="mb-4 sb-text-muted">Tool: <strong class="sb-text-strong">{{ data.tool.name }}</strong></p>
       
       @if (loading()) {
         <div class="flex justify-center py-4">

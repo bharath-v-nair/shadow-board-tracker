@@ -28,28 +28,27 @@ import { Board } from '../../models/board.model';
     MatProgressSpinnerModule
   ],
   template: `
-    <div class="px-4 pt-4 pb-8">
+    <div class="px-4 pt-3 pb-6 sb-surface">
       <!-- Handle bar -->
       <div class="flex justify-center mb-4">
-        <div class="w-10 h-1 rounded-full bg-gray-300"></div>
+        <div class="w-10 h-1 rounded-full" style="background: var(--sb-border-strong);"></div>
       </div>
 
       <!-- Title -->
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-800 m-0">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-xl font-bold sb-text-strong m-0">
           {{ isEditMode ? 'Edit Board' : 'Add New Board' }}
         </h2>
-        <button mat-icon-button (click)="dismiss()" aria-label="Close">
+        <button mat-icon-button (click)="dismiss()" aria-label="Close" class="sb-text-muted">
           <mat-icon>close</mat-icon>
         </button>
       </div>
 
       <!-- Form -->
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-3">
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Board Name</mat-label>
           <input matInput formControlName="name" placeholder="e.g. Wrench Set A" id="board-name-input" />
-          <mat-icon matSuffix>dashboard</mat-icon>
           @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
             <mat-error>Board name is required</mat-error>
           }
@@ -58,23 +57,22 @@ import { Board } from '../../models/board.model';
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Location</mat-label>
           <input matInput formControlName="location" placeholder="e.g. Workshop Floor 2 – Bay 3" id="board-location-input" />
-          <mat-icon matSuffix>location_on</mat-icon>
           @if (form.get('location')?.hasError('required') && form.get('location')?.touched) {
             <mat-error>Location is required</mat-error>
           }
         </mat-form-field>
 
         @if (error()) {
-          <p class="text-red-600 text-sm -mt-2">{{ error() }}</p>
+          <p class="text-red-600 text-sm -mt-1">{{ error() }}</p>
         }
 
-        <!-- Actions -->
-        <div class="flex gap-3 mt-2">
+        <!-- Actions: primary dominates, cancel recedes -->
+        <div class="flex flex-col items-stretch gap-1 mt-3">
           <button
             mat-flat-button
             type="submit"
             [disabled]="form.invalid || submitting()"
-            class="flex-1 bg-blue-600 text-white font-semibold"
+            class="w-full !h-12 !rounded-full !bg-blue-600 !text-white font-semibold disabled:!bg-slate-300 disabled:!text-slate-500"
             id="board-sheet-submit-btn"
           >
             @if (submitting()) {
@@ -82,7 +80,12 @@ import { Board } from '../../models/board.model';
             }
             {{ submitting() ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Board') }}
           </button>
-          <button mat-stroked-button type="button" (click)="dismiss()" class="flex-none">
+
+          @if (form.invalid && !submitting()) {
+            <p class="text-xs sb-text-subtle text-center mt-1">Enter a board name and location to continue.</p>
+          }
+
+          <button mat-button type="button" (click)="dismiss()" class="w-full sb-text-muted mt-1">
             Cancel
           </button>
         </div>
