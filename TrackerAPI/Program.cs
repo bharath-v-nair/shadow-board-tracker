@@ -128,6 +128,26 @@ else
     builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 }
 
+// Photo storage (Phase 25). If a blob connection string is configured we use the real Azure
+// Blob SDK — pointed at Azurite locally ("UseDevelopmentStorage=true"), at real Azure in the
+// cloud (same SDK, connection-string swap). If absent (secret-free container, or `dotnet run`
+// with no Azurite), a disabled no-op is registered so the app still boots and the UI hides
+// upload — the same graceful-degradation stance as the email and Redis layers.
+var storageConnection = builder.Configuration["Storage:ConnectionString"];
+if (!string.IsNullOrEmpty(storageConnection))
+{
+    var publicBlobEndpoint = builder.Configuration["Storage:PublicBlobEndpoint"];
+    builder.Services.AddSingleton<IPhotoStorageService>(sp =>
+        new BlobPhotoStorageService(
+            storageConnection,
+            sp.GetRequiredService<ILogger<BlobPhotoStorageService>>(),
+            publicBlobEndpoint));
+}
+else
+{
+    builder.Services.AddSingleton<IPhotoStorageService, DisabledPhotoStorageService>();
+}
+
 var secretKey = builder.Configuration["Jwt:SecretKey"];
 builder.Services.AddAuthentication(options =>
 {
@@ -261,6 +281,25 @@ using (var scope = app.Services.CreateScope())
         db.Database.EnsureCreated();
     }
     DbInitializer.Initialize(db);
+
+    // Create the blob containers up front so the first photo upload of the app's life doesn't
+    // race container creation. Only when real storage is wired (skipped for the disabled no-op
+    // and the in-memory test fake). Best-effort: if storage is unreachable at boot (e.g. Azurite
+    // still starting), log and carry on — UploadAsync also creates the container lazily, and
+    // photos are an optional feature that must never block API startup.
+    var photoStorage = scope.ServiceProvider.GetRequiredService<IPhotoStorageService>();
+    if (photoStorage is BlobPhotoStorageService blobStorage)
+    {
+        try
+        {
+            blobStorage.InitializeAsync().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            scope.ServiceProvider.GetRequiredService<ILogger<BlobPhotoStorageService>>()
+                .LogWarning(ex, "Blob container initialization failed at startup; will retry lazily on first upload.");
+        }
+    }
 }
 app.Run();
 

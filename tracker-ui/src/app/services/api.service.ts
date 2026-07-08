@@ -107,6 +107,21 @@ export class ApiService {
     return this.http.patch<Worker>(`${this.apiUrl}/workers/${workerId}/shift`, {});
   }
 
+  // ── Photos (multipart) ───────────────────────────────────
+  // The browser sets the multipart Content-Type boundary automatically when the body is a
+  // FormData; we must NOT set it manually or the boundary would be missing.
+  uploadMyPhoto(file: File): Observable<{ photoUrl: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ photoUrl: string }>(`${this.apiUrl}/workers/me/photo`, form);
+  }
+
+  uploadIncidentPhoto(incidentId: string, file: File): Observable<{ photoUrl: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ photoUrl: string }>(`${this.apiUrl}/incidents/${incidentId}/photo`, form);
+  }
+
   // ── Incidents ────────────────────────────────────────────
   createIncident(incident: CreateIncidentDto): Observable<Incident> {
     return this.http.post<Incident>(`${this.apiUrl}/incidents`, incident);

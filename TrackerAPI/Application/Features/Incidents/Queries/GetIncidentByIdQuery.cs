@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TrackerAPI.Data;
 using TrackerAPI.DTOs;
+using TrackerAPI.Interfaces;
 
 namespace TrackerAPI.Application.Features.Incidents.Queries
 {
@@ -21,10 +22,12 @@ namespace TrackerAPI.Application.Features.Incidents.Queries
     public class GetIncidentByIdQueryHandler : IRequestHandler<GetIncidentByIdQuery, IncidentDto>
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPhotoStorageService _photos;
 
-        public GetIncidentByIdQueryHandler(ApplicationDbContext context)
+        public GetIncidentByIdQueryHandler(ApplicationDbContext context, IPhotoStorageService photos)
         {
             _context = context;
+            _photos = photos;
         }
 
         public async Task<IncidentDto> Handle(GetIncidentByIdQuery request, CancellationToken cancellationToken)
@@ -54,7 +57,8 @@ namespace TrackerAPI.Application.Features.Incidents.Queries
                 ToolName = tool?.Name,
                 BoardName = board?.Name,
                 ReporterName = incident.Reporter?.Name,
-                WorkerName = incident.Worker?.Name
+                WorkerName = incident.Worker?.Name,
+                PhotoUrl = _photos.GetReadUrl(incident.PhotoPath)
             };
         }
     }

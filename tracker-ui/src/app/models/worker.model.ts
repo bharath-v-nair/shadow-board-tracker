@@ -5,6 +5,7 @@ export interface Worker {
   role?: string;
   isAvailable: boolean;
   isOnShift: boolean;
+  photoUrl?: string;
   magicLinkToken?: string;
   magicLinkTokenExpiresAt?: string | Date;
 }

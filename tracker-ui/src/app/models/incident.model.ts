@@ -11,6 +11,7 @@ export interface Incident {
   reportedAt: string | Date;
   resolvedAt?: string | Date;
   status: string;
+  photoUrl?: string;
 }
 
 export interface CreateIncidentDto {

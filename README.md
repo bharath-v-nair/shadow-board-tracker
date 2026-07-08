@@ -139,8 +139,9 @@ To test the application on a physical mobile device connected to the same Wi-Fi 
 
 ## Run with Docker
 
-The entire stack — the unified SPA (Angular UI baked into the .NET API), SQL Server, and Redis —
-runs with a single command. This requires only [Docker Desktop](https://www.docker.com/products/docker-desktop/);
+The entire stack — the unified SPA (Angular UI baked into the .NET API), SQL Server, Redis, and
+Azurite (blob storage) — runs with a single command. This requires only
+[Docker Desktop](https://www.docker.com/products/docker-desktop/);
 no local .NET, Node, or SQL Server install is needed.
 
 ```bash
@@ -154,6 +155,11 @@ docker compose up --build
 * **Redis** (`redis:7-alpine`) backs a **cache-aside** layer over the hot read paths (board and
   tool-name/type lists); the application connects automatically via `Redis__ConnectionString`.
   When Redis is absent the API falls back to an in-process memory cache, so nothing breaks.
+* **Azurite** (`mcr.microsoft.com/azure-storage/azurite`) is a local emulator of the **Azure Blob
+  Storage** API for tool/profile photo uploads. The app uses the real `Azure.Storage.Blobs` SDK and
+  serves photos via short-lived **SAS** URLs; going to real Azure is a connection-string swap.
+  Blobs persist in a named volume (`azuritedata`). When storage is unconfigured, upload is disabled
+  and the rest of the app is unaffected.
 * **Health probe:** `GET /health` (anonymous) returns a JSON status for each critical dependency
   (SQL, and Redis when configured) so orchestrators can gate traffic on readiness.
 
@@ -186,6 +192,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Photo Uploads via Azure Blob Storage (SAS URLs, Azurite locally) | ✅ Complete (Phase 25) |
 | Backend Hardening (FluentValidation pipeline, health checks) | ✅ Complete (Phase 24) |
 | Redis Distributed Caching (cache-aside + invalidation) | ✅ Complete (Phase 23) |
 | Full-Stack Containerization (Docker Compose: API + SQL + Redis) | ✅ Complete (Phase 22) |

@@ -62,6 +62,28 @@ import { Tool } from '../../models/tool.model';
             }
           </mat-select>
         </mat-form-field>
+
+        <!-- Optional evidence photo. Camera-first on mobile via the capture attribute. -->
+        <div class="mb-2">
+          @if (photoPreview()) {
+            <div class="relative inline-block">
+              <img [src]="photoPreview()" alt="Selected evidence"
+                   class="w-20 h-20 rounded-lg object-cover border sb-border" />
+              <button type="button" (click)="clearPhoto()" aria-label="Remove photo"
+                      class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shadow">
+                <mat-icon class="text-[16px] w-[16px] h-[16px]">close</mat-icon>
+              </button>
+            </div>
+          } @else {
+            <button type="button" (click)="photoInput.click()"
+                    class="flex items-center gap-2 text-sm sb-text-muted border sb-border rounded-lg px-3 py-2 w-full justify-center">
+              <mat-icon class="text-[20px] w-[20px] h-[20px]">add_a_photo</mat-icon>
+              Attach a photo (optional)
+            </button>
+          }
+          <input #photoInput type="file" accept="image/png,image/jpeg,image/webp" capture="environment"
+                 class="hidden" (change)="onPhotoSelected($event)" />
+        </div>
       }
 
       <!-- Actions: alert-red primary dominates, cancel recedes -->
@@ -91,6 +113,8 @@ export class ReportDialogComponent implements OnInit {
   loading = signal<boolean>(true);
   submitting = signal<boolean>(false);
   selectedWorkerId = '';
+  selectedPhoto = signal<File | null>(null);
+  photoPreview = signal<string | null>(null);
 
   ngOnInit() {
     this.api.getWorkers('Worker', true).subscribe({
@@ -103,6 +127,29 @@ export class ReportDialogComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  onPhotoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // allow re-selecting the same file
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      // Keep it simple in the sheet: just ignore oversize; the button label stays "Attach".
+      alert('Photo must be under 5MB.');
+      return;
+    }
+
+    this.selectedPhoto.set(file);
+    const reader = new FileReader();
+    reader.onload = () => this.photoPreview.set(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  clearPhoto() {
+    this.selectedPhoto.set(null);
+    this.photoPreview.set(null);
   }
 
   reportMissing() {
@@ -118,8 +165,22 @@ export class ReportDialogComponent implements OnInit {
 
     this.api.createIncident(payload).subscribe({
       next: (incident) => {
-        this.submitting.set(false);
-        this.sheetRef.dismiss(incident);
+        // The incident exists now; the photo (if any) attaches to its id in a second call.
+        // A photo failure shouldn't undo a successful report, so we dismiss either way.
+        const photo = this.selectedPhoto();
+        if (photo) {
+          this.api.uploadIncidentPhoto(incident.id, photo).subscribe({
+            next: () => { this.submitting.set(false); this.sheetRef.dismiss(incident); },
+            error: (err) => {
+              console.error('Incident reported, but photo upload failed', err);
+              this.submitting.set(false);
+              this.sheetRef.dismiss(incident);
+            }
+          });
+        } else {
+          this.submitting.set(false);
+          this.sheetRef.dismiss(incident);
+        }
       },
       error: (err) => {
         console.error('Failed to report incident', err);

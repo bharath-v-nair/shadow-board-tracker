@@ -11,6 +11,8 @@ namespace TrackerAPI.DTOs
         public string Role { get; set; } = string.Empty;
         public bool IsAvailable { get; set; }
         public bool IsOnShift { get; set; }
+        // Short-lived SAS read URL for the profile photo, minted per request; null when none.
+        public string? PhotoUrl { get; set; }
     }
 
     public class CreateWorkerDto

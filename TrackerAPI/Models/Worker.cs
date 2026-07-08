@@ -12,5 +12,9 @@ namespace TrackerAPI.Models
         public bool IsOnShift { get; set; } = false;
         public string? MagicLinkToken { get; set; }
         public DateTime? MagicLinkTokenExpiresAt { get; set; }
+
+        // Blob path (e.g. "{workerId}/{guid}.jpg") of an optional profile photo. Nullable;
+        // the UI falls back to the initials avatar when absent. Stores the path, not a SAS URL.
+        public string? PhotoPath { get; set; }
     }
 }

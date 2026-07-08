@@ -124,6 +124,27 @@ namespace TrackerAPI.Controllers
             return NoContent();
         }
 
+        // Attach an evidence photo (multipart form field "file"). Any authenticated role may
+        // upload — it is non-destructive evidence, so even DemoViewer is allowed (mirrors the
+        // spec). Validation (size/type/magic-bytes) lives in the command handler.
+        [Authorize]
+        [HttpPost("{id}/photo")]
+        [RequestSizeLimit(6 * 1024 * 1024)] // a touch above the 5MB content cap to allow multipart overhead
+        public async Task<IActionResult> UploadPhoto(Guid id, IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+
+            var result = await _mediator.Send(new UploadIncidentPhotoCommand(id, ms.ToArray(), file.ContentType));
+
+            if (result.NotFound) return NotFound();
+            if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
+
+            return Ok(new { photoUrl = result.PhotoUrl });
+        }
+
         [Authorize(Roles = "QA,DemoViewer")]
         [HttpPatch("{id}/reopen")]
         public async Task<IActionResult> ReopenIncident(Guid id)

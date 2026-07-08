@@ -2,6 +2,7 @@
 #   api  -> the unified SPA (Angular UI + .NET API) on http://localhost:8080
 #   sqlserver -> Azure SQL Edge, data persisted in a named volume
 #   redis -> distributed cache backing cache-aside reads (Phase 23)
+#   azurite -> local Azure Blob Storage emulator for photo uploads (Phase 25)
 #
 # Containers talk to each other over the default compose network using the SERVICE
 # NAME as DNS hostname (e.g. the API reaches the DB at "sqlserver,1433", not localhost).
@@ -21,6 +22,9 @@ services:
       redis:
         # Not gated on health: if Redis is briefly unavailable the cache layer falls
         # through to the database, so the API can start alongside it.
+        condition: service_started
+      azurite:
+        # Same rationale as Redis: photo storage degrades gracefully, so no health gate.
         condition: service_started
     environment:
       # Service name "sqlserver" resolves via compose DNS to the DB container.
@@ -42,6 +46,16 @@ services:
       - Email__FromEmail=${EMAIL_FROM:-noreply@shadowboard.local}
       - Email__FromName=${EMAIL_FROM_NAME:-ShadowBoard Tracker}
       - Email__UseStartTls=${EMAIL_STARTTLS:-true}
+      # Photo storage (Phase 25). "UseDevelopmentStorage=true" resolves to 127.0.0.1, which is
+      # the API's OWN container in compose — so we pass the FULL Azurite well-known dev account
+      # connection string but point the BlobEndpoint at the "azurite" service via compose DNS.
+      # These are Azurite's fixed, public emulator credentials — not real secrets.
+      - Storage__ConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      # Minted SAS URLs are handed to the browser on the HOST, which can't resolve the compose DNS
+      # name "azurite" — rewrite the host to the port-mapped localhost. (Real Azure has one public
+      # DNS, so this override is unset in the cloud.) Only scheme/host/port are swapped; the SAS
+      # signature covers the resource path, not the host, so it stays valid.
+      - Storage__PublicBlobEndpoint=http://localhost:10000
 
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
@@ -73,5 +87,20 @@ services:
     # Backs IDistributedCache for cache-aside reads (boards + tool name/type lists).
     # The API connects via Redis__ConnectionString=redis:6379 (set on the api service).
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: shadowboard-azurite
+    # Only the blob service is used (10000). Queue (10001) and table (10002) are left off.
+    # --skipApiVersionCheck: the Azure.Storage.Blobs SDK sends a newer REST API version than this
+    # Azurite build recognises; without this flag Azurite 400s every request (version skew — the
+    # emulator lags the SDK). Safe here because the operations we use are long-stable.
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck"
+    ports:
+      - "10000:10000"
+    volumes:
+      # Named volume keeps uploaded blobs across `docker compose down`/restarts.
+      - azuritedata:/data
+
 volumes:
   sqldata:
+  azuritedata:

@@ -18,6 +18,8 @@ namespace TrackerAPI.DTOs
         public string? ReporterName { get; set; }
         public string? WorkerName { get; set; }
         public Guid? BoardId { get; set; }
+        // Short-lived SAS read URL for the evidence photo, minted per request; null when none.
+        public string? PhotoUrl { get; set; }
     }
 
     public class CreateIncidentDto

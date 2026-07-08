@@ -33,9 +33,31 @@ import { Worker } from '../../models/worker.model';
         } @else if (worker(); as w) {
           <!-- Identity card -->
           <div class="sb-card p-6 flex flex-col items-center text-center">
-            <div class="w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-inner"
-                 style="background: var(--sb-brand-soft);">
-              <span class="text-4xl font-extrabold sb-brand-text">{{ initials() }}</span>
+            <div class="relative w-24 h-24 mb-4">
+              @if (w.photoUrl) {
+                <img [src]="w.photoUrl" alt="Profile photo"
+                     class="w-24 h-24 rounded-full object-cover shadow-inner" />
+              } @else {
+                <div class="w-24 h-24 rounded-full flex items-center justify-center shadow-inner"
+                     style="background: var(--sb-brand-soft);">
+                  <span class="text-4xl font-extrabold sb-brand-text">{{ initials() }}</span>
+                </div>
+              }
+              <!-- Camera overlay: opens the file picker (camera on mobile via capture attr) -->
+              <button type="button"
+                      class="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white disabled:opacity-50"
+                      style="background: var(--sb-brand);"
+                      [disabled]="uploadingPhoto()"
+                      (click)="photoInput.click()"
+                      aria-label="Change profile photo">
+                @if (uploadingPhoto()) {
+                  <mat-icon class="animate-spin text-[18px] w-[18px] h-[18px]">progress_activity</mat-icon>
+                } @else {
+                  <mat-icon class="text-[18px] w-[18px] h-[18px]">photo_camera</mat-icon>
+                }
+              </button>
+              <input #photoInput type="file" accept="image/png,image/jpeg,image/webp" capture="user"
+                     class="hidden" (change)="onPhotoSelected($event)" />
             </div>
             <h2 class="text-2xl font-bold sb-text-strong m-0">{{ w.name }}</h2>
             <span class="sb-chip mt-2"
@@ -114,6 +136,7 @@ export class ProfileComponent implements OnInit {
   worker = signal<Worker | null>(null);
   loading = signal<boolean>(true);
   toggling = signal<boolean>(false);
+  uploadingPhoto = signal<boolean>(false);
 
   roleKey = computed(() => this.worker()?.role || (this.auth.isQA() ? 'QA' : this.auth.isDemoUser() ? 'DemoViewer' : 'Worker'));
   roleLabel = computed(() => {
@@ -172,6 +195,35 @@ export class ProfileComponent implements OnInit {
         this.snackBar.open('Failed to update shift status.', 'Close', { duration: 3000 });
       }
     });
+  }
+
+  onPhotoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    // Client-side pre-check mirrors the server (5MB, image types) for a faster failure.
+    if (file.size > 5 * 1024 * 1024) {
+      this.snackBar.open('Photo must be under 5MB.', 'Close', { duration: 3000 });
+      input.value = '';
+      return;
+    }
+
+    this.uploadingPhoto.set(true);
+    this.api.uploadMyPhoto(file).subscribe({
+      next: ({ photoUrl }) => {
+        const w = this.worker();
+        if (w) this.worker.set({ ...w, photoUrl });
+        this.uploadingPhoto.set(false);
+        this.snackBar.open('Profile photo updated.', 'Close', { duration: 2500 });
+      },
+      error: (err) => {
+        console.error('Photo upload failed', err);
+        this.uploadingPhoto.set(false);
+        this.snackBar.open(err?.error ?? 'Photo upload failed.', 'Close', { duration: 3000 });
+      }
+    });
+    input.value = ''; // allow re-selecting the same file
   }
 
   goBack() {

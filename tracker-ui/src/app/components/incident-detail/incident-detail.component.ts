@@ -59,7 +59,15 @@ import { ApiService } from '../../services/api.service';
                 <p class="text-lg font-medium sb-text-strong">{{ incident().reporterName || 'Unknown' }}</p>
               </div>
 
-              <button 
+              @if (incident().photoUrl) {
+                <div class="mb-6">
+                  <p class="text-sm sb-text-subtle uppercase tracking-wider font-semibold mb-2">Evidence Photo</p>
+                  <img [src]="incident().photoUrl" alt="Evidence photo of the missing tool"
+                       class="w-full rounded-lg border sb-border object-cover max-h-64" />
+                </div>
+              }
+
+              <button
                 mat-flat-button 
                 color="primary" 
                 class="w-full py-2 text-lg" 

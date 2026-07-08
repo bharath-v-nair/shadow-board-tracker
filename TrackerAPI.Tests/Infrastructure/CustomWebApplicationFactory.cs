@@ -77,6 +77,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             RemoveAll(services, typeof(IEmailService));
             services.AddScoped<IEmailService, NoOpEmailService>();
 
+            // Swap real Azure Blob storage for an in-memory fake (no Azurite needed). IsEnabled
+            // is true so the upload happy-path and validation branches are exercised end to end;
+            // GetReadUrl returns a deterministic fake URL so DTO assertions can check for it.
+            RemoveAll(services, typeof(IPhotoStorageService));
+            services.AddSingleton<IPhotoStorageService, FakePhotoStorageService>();
+
             // Give EACH factory instance its OWN distributed cache. The default
             // AddDistributedMemoryCache registration otherwise bleeds cached entries across
             // the separate factory instances xUnit creates per test class (one class seeds
@@ -100,5 +106,36 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private sealed class NoOpEmailService : IEmailService
     {
         public Task SendEmailAsync(string toEmail, string subject, string content) => Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// In-memory stand-in for BlobPhotoStorageService. Stores uploaded bytes in a dictionary
+    /// keyed by the container-qualified path, so the full upload -> persist PhotoPath -> read URL
+    /// flow works without an Azurite container. Thread-safe for parallel test execution.
+    /// </summary>
+    public sealed class FakePhotoStorageService : IPhotoStorageService
+    {
+        public readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte[]> Blobs = new();
+
+        public bool IsEnabled => true;
+
+        public Task<string> UploadAsync(Stream content, string contentType, string container, string blobName, CancellationToken cancellationToken = default)
+        {
+            using var ms = new MemoryStream();
+            content.CopyTo(ms);
+            var path = $"{container}/{blobName}";
+            Blobs[path] = ms.ToArray();
+            return Task.FromResult(path);
+        }
+
+        // Mirrors the real service's contract: null for empty path, otherwise a stable fake URL.
+        public string? GetReadUrl(string? path)
+            => string.IsNullOrWhiteSpace(path) ? null : $"https://fake.blob/{path}?sig=test";
+
+        public Task DeleteAsync(string? path, CancellationToken cancellationToken = default)
+        {
+            if (!string.IsNullOrWhiteSpace(path)) Blobs.TryRemove(path, out _);
+            return Task.CompletedTask;
+        }
     }
 }

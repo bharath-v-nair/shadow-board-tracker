@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TrackerAPI.Data;
 using TrackerAPI.DTOs;
+using TrackerAPI.Interfaces;
 
 namespace TrackerAPI.Application.Features.Workers.Queries
 {
@@ -25,10 +26,12 @@ namespace TrackerAPI.Application.Features.Workers.Queries
     public class GetCurrentWorkerQueryHandler : IRequestHandler<GetCurrentWorkerQuery, WorkerDto?>
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPhotoStorageService _photos;
 
-        public GetCurrentWorkerQueryHandler(ApplicationDbContext context)
+        public GetCurrentWorkerQueryHandler(ApplicationDbContext context, IPhotoStorageService photos)
         {
             _context = context;
+            _photos = photos;
         }
 
         public async Task<WorkerDto?> Handle(GetCurrentWorkerQuery request, CancellationToken cancellationToken)
@@ -47,7 +50,8 @@ namespace TrackerAPI.Application.Features.Workers.Queries
                 Email = worker.Email,
                 Role = worker.Role,
                 IsAvailable = worker.IsAvailable,
-                IsOnShift = worker.IsOnShift
+                IsOnShift = worker.IsOnShift,
+                PhotoUrl = _photos.GetReadUrl(worker.PhotoPath)
             };
         }
     }

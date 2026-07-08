@@ -51,6 +51,28 @@ namespace TrackerAPI.Controllers
             return Ok(worker);
         }
 
+        // Upload the authenticated caller's own profile photo (multipart field "file"). Uses the
+        // same /me identity pattern as GetCurrentWorker — the id comes from the JWT, never the URL.
+        [HttpPost("me/photo")]
+        [RequestSizeLimit(6 * 1024 * 1024)]
+        public async Task<IActionResult> UploadMyPhoto(IFormFile file)
+        {
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(idClaim, out var userId)) return Unauthorized();
+
+            if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+
+            var result = await _mediator.Send(new UploadWorkerPhotoCommand(userId, ms.ToArray(), file.ContentType));
+
+            if (result.NotFound) return NotFound();
+            if (!result.IsSuccess) return BadRequest(result.ErrorMessage);
+
+            return Ok(new { photoUrl = result.PhotoUrl });
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<WorkerDto>> GetWorker(Guid id)
         {
