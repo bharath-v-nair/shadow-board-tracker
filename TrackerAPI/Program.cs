@@ -28,7 +28,12 @@ if (!string.IsNullOrEmpty(keyVaultUriStr))
 
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        // In containers the SQL server may still be finishing its boot when the API's
+        // startup Migrate() fires. EnableRetryOnFailure transparently retries transient
+        // connection errors instead of crashing the app on the first refused connection.
+        sql => sql.EnableRetryOnFailure()));
 
 builder.Services.AddControllers();
 
@@ -47,7 +52,12 @@ builder.Services.AddSignalR()
 // Broadcasts incident changes from the command handlers to all connected clients.
 builder.Services.AddScoped<IIncidentNotifier, IncidentNotifier>();
 
-if (!builder.Environment.IsDevelopment())
+// Enable Application Insights only when a connection string is actually configured
+// (it is in Azure via app settings). Registering it without one throws at startup, which
+// would break the secret-free Docker container running with ASPNETCORE_ENVIRONMENT=Production.
+var appInsightsConnection = builder.Configuration["ApplicationInsights:ConnectionString"]
+    ?? builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+if (!builder.Environment.IsDevelopment() && !string.IsNullOrEmpty(appInsightsConnection))
 {
     builder.Services.AddApplicationInsightsTelemetry();
 }

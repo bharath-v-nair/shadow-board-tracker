@@ -137,12 +137,36 @@ To test the application on a physical mobile device connected to the same Wi-Fi 
    ```
 5. **Access on Mobile:** Open your mobile browser and navigate to `http://192.168.1.2:4200`.
 
+## Run with Docker
+
+The entire stack — the unified SPA (Angular UI baked into the .NET API), SQL Server, and Redis —
+runs with a single command. This requires only [Docker Desktop](https://www.docker.com/products/docker-desktop/);
+no local .NET, Node, or SQL Server install is needed.
+
+```bash
+docker compose up --build
+```
+
+* **App:** http://localhost:8080 — the Angular UI and the API are served same-origin from one container.
+* **Demo login:** works out of the box (the database is migrated and seeded automatically at startup).
+* **Data persistence:** the database lives in a named Docker volume (`sqldata`), so
+  `docker compose down && docker compose up` keeps your data. Use `docker compose down -v` to wipe it.
+* **Redis** (`redis:7-alpine`) is started as infrastructure for upcoming cache-aside work; the
+  application does not use it yet.
+
+Secrets (SendGrid, Azure Key Vault) are intentionally omitted from the container. Email dispatch
+degrades gracefully to a logged no-op so the maker-checker flow still completes locally.
+
+The image produced here is the same unified-SPA artifact the CI/CD pipeline deploys to Azure App
+Service, giving dev/CI/prod parity.
+
 ## Roadmap
 
 The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Full-Stack Containerization (Docker Compose: API + SQL + Redis) | ✅ Complete (Phase 22) |
 | Frontend Depth: Theming, Dark Mode, Profile & Search | ✅ Complete (Phase 21) |
 | Real-Time Sync (SignalR / WebSockets) | ✅ Complete (Phase 20) |
 | xUnit Integration Testing + CI Pipeline Gating | ✅ Complete (Phase 19) |

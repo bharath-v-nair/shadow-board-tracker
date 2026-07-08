@@ -1,4 +1,31 @@
+# One command to run the whole stack locally: `docker compose up --build`
+#   api  -> the unified SPA (Angular UI + .NET API) on http://localhost:8080
+#   sqlserver -> Azure SQL Edge, data persisted in a named volume
+#   redis -> present for Phase 23 (caching); the app does NOT use it yet
+#
+# Containers talk to each other over the default compose network using the SERVICE
+# NAME as DNS hostname (e.g. the API reaches the DB at "sqlserver,1433", not localhost).
 services:
+  api:
+    build:
+      context: .
+      dockerfile: TrackerAPI/Dockerfile
+    container_name: shadowboard-api
+    ports:
+      - "8080:8080"
+    depends_on:
+      sqlserver:
+        # Don't start the API until SQL reports healthy — Program.cs runs
+        # db.Database.Migrate() at boot and needs the server listening.
+        condition: service_healthy
+    environment:
+      # Service name "sqlserver" resolves via compose DNS to the DB container.
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=ShadowBoardDb;User Id=sa;Password=SuperStrong!Passw0rd2026;TrustServerCertificate=True;
+      # Config via env vars (the 12-factor way) instead of baking secrets into the image.
+      # Double underscore maps to the ASP.NET Core config section separator (Jwt:SecretKey).
+      - Jwt__SecretKey=SuperSecretShadowBoardTrackerKey2026!!
+      - ASPNETCORE_ENVIRONMENT=Production
+
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: shadowboard-db
@@ -7,3 +34,27 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=SuperStrong!Passw0rd2026
+    volumes:
+      # Named volume: the database files survive `docker compose down` and restarts.
+      # (A bind mount would tie data to a host path; a named volume is managed by Docker.)
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      # azure-sql-edge does not ship sqlcmd on a stable path, so probe the TCP port with
+      # bash instead — good enough as a readiness gate, and the API additionally retries
+      # transient connection failures (EnableRetryOnFailure) during startup migration.
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/1433' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: shadowboard-redis
+    ports:
+      - "6379:6379"
+    # NOTE: infrastructure for Phase 23 (cache-aside). The application does not connect
+    # to Redis yet — it is wired here so the caching phase is a code change, not an infra one.
+
+volumes:
+  sqldata:

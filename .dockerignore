@@ -1,0 +1,35 @@
+# Keep the build context small and the image clean. Anything the multi-stage build
+# doesn't need is excluded so it is never sent to the Docker daemon or copied into a layer.
+
+# Node / Angular
+**/node_modules
+tracker-ui/dist
+tracker-ui/.angular
+
+# .NET build output (the image rebuilds these from source)
+**/bin
+**/obj
+TrackerAPI/publish
+
+# VCS + local tooling
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Docker artifacts themselves
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Local-only study material and secrets — never belong in an image
+docs
+.claude
+**/appsettings.Development.json
+LLM_INTERVIEW_KIT_SHADOWBOARD.md
+SPLIT_PROMPT.txt
+UNIVERSAL_INTERVIEW_PROMPT_TEMPLATE.md
+
+# OS cruft
+**/.DS_Store
