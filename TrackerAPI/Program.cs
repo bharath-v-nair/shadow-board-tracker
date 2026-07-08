@@ -65,7 +65,19 @@ if (!builder.Environment.IsDevelopment() && !string.IsNullOrEmpty(appInsightsCon
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+// Notification transport is abstracted behind IEmailService and chosen by config, so the
+// provider is a deployment concern, not a code change. Default is plain SMTP (MailKit) —
+// smtp4dev for dev/demos, any real SMTP provider (Brevo, etc.) in prod. SendGrid is kept
+// as a documented alternate for Email:Provider=SendGrid.
+var emailProvider = builder.Configuration["Email:Provider"] ?? "Smtp";
+if (emailProvider.Equals("SendGrid", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+}
 
 var secretKey = builder.Configuration["Jwt:SecretKey"];
 builder.Services.AddAuthentication(options =>

@@ -154,11 +154,28 @@ docker compose up --build
 * **Redis** (`redis:7-alpine`) is started as infrastructure for upcoming cache-aside work; the
   application does not use it yet.
 
-Secrets (SendGrid, Azure Key Vault) are intentionally omitted from the container. Email dispatch
-degrades gracefully to a logged no-op so the maker-checker flow still completes locally.
-
 The image produced here is the same unified-SPA artifact the CI/CD pipeline deploys to Azure App
 Service, giving dev/CI/prod parity.
+
+### Email (dev vs prod)
+
+Email transport is plain SMTP (MailKit) behind `IEmailService`, so the provider is a config
+change, not a code change. `docker compose up` auto-merges `docker-compose.override.yml`, which
+runs **[smtp4dev](https://github.com/rnwood/smtp4dev)** — a local fake mail server. Every email
+the app "sends" is captured (never delivered) and viewable in a web inbox:
+
+* **Inbox UI:** http://localhost:5001
+
+To run against a **real** provider (prod-like), skip the override and supply real SMTP settings
+via the gitignored `.env` (see `.env.example`):
+
+```bash
+cp .env.example .env   # then fill in real SMTP values
+docker compose -f docker-compose.yml up   # base only — no smtp4dev
+```
+
+If no SMTP host is configured, email degrades gracefully to a logged no-op so the maker-checker
+flow still completes. Azure Key Vault and other secrets are intentionally omitted from the image.
 
 ## Roadmap
 

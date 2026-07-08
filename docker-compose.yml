@@ -25,6 +25,16 @@ services:
       # Double underscore maps to the ASP.NET Core config section separator (Jwt:SecretKey).
       - Jwt__SecretKey=SuperSecretShadowBoardTrackerKey2026!!
       - ASPNETCORE_ENVIRONMENT=Production
+      # Email transport (prod). Values come from the gitignored .env (Brevo SMTP), NOT
+      # committed. `docker compose up` also loads docker-compose.override.yml, which points
+      # these at the local smtp4dev catcher for dev; prod runs base only (see README).
+      - Email__Host=${EMAIL_HOST:-}
+      - Email__Port=${EMAIL_PORT:-587}
+      - Email__User=${EMAIL_USER:-}
+      - Email__Password=${EMAIL_PASSWORD:-}
+      - Email__FromEmail=${EMAIL_FROM:-noreply@shadowboard.local}
+      - Email__FromName=${EMAIL_FROM_NAME:-ShadowBoard Tracker}
+      - Email__UseStartTls=${EMAIL_STARTTLS:-true}
 
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest

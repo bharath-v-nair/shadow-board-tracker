@@ -1,0 +1,27 @@
+# DEV overlay — auto-merged by `docker compose up` on top of docker-compose.yml.
+# It adds a local fake mail server (smtp4dev) and repoints the API's email transport at it,
+# so dev/demos never touch a real paid provider.
+#
+#   Dev  : `docker compose up`                      -> base + this override (uses smtp4dev)
+#   Prod : `docker compose -f docker-compose.yml up` -> base only (uses the real .env provider)
+#
+# See every "sent" email in the web inbox at http://localhost:5001
+services:
+  smtp4dev:
+    image: rnwood/smtp4dev:latest
+    container_name: shadowboard-smtp4dev
+    ports:
+      - "5001:80"   # web inbox UI
+      - "2525:25"   # SMTP port (for testing from the host, if needed)
+
+  api:
+    environment:
+      # Compose DNS: the API reaches the catcher by its service name "smtp4dev" on port 25.
+      - Email__Host=smtp4dev
+      - Email__Port=25
+      - Email__UseStartTls=false   # smtp4dev has no TLS
+      # Clear creds so we don't attempt AUTH against the catcher (it advertises none).
+      - Email__User=
+      - Email__Password=
+    depends_on:
+      - smtp4dev
