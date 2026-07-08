@@ -371,11 +371,11 @@ export class BoardDetailComponent implements OnInit {
   // ── Report missing ───────────────────────────────────────
 
   openReportDialog(tool: Tool) {
-    const dialogRef = this.dialog.open(ReportDialogComponent, {
-      width: '400px',
-      data: { tool }
+    const ref = this.bottomSheet.open(ReportDialogComponent, {
+      data: { tool },
+      panelClass: 'rounded-t-2xl'
     });
-    dialogRef.afterClosed().subscribe(incident => {
+    ref.afterDismissed().subscribe(incident => {
       if (incident) {
         this.fetchBoardDetails(this.board()!.id, false);
         this.snackBar.open('Incident reported successfully!', 'Close', { duration: 3000 });
