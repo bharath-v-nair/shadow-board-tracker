@@ -13,6 +13,10 @@ using TrackerAPI.Application.Behaviors;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Hangfire;
+using Hangfire.SqlServer;
+using TrackerAPI.Jobs;
+using TrackerAPI.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,6 +152,31 @@ else
     builder.Services.AddSingleton<IPhotoStorageService, DisabledPhotoStorageService>();
 }
 
+// Background jobs (Phase 26). EVERYTHING Hangfire is gated behind Hangfire:Enabled because
+// Hangfire.SqlServer cannot run against the EF InMemory provider the integration tests use — it
+// would try to create its schema at startup and break every test. Default true in appsettings;
+// the test factory forces it false (via the Hangfire__Enabled env var, guaranteed present at
+// build time). The job type itself is always registered so it can be unit-tested directly.
+var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
+builder.Services.AddScoped<MissingToolsReportJob>();
+if (hangfireEnabled)
+{
+    builder.Services.AddHangfire(config => config
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        // Jobs persist in SQL (the HangFire schema in the same DB) — so they survive app restarts,
+        // unlike a plain IHostedService whose in-flight work dies with the process.
+        .UseSqlServerStorage(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            new SqlServerStorageOptions
+            {
+                PrepareSchemaIfNecessary = true, // auto-creates the HangFire tables on first run
+                QueuePollInterval = TimeSpan.FromSeconds(15)
+            }));
+    builder.Services.AddHangfireServer();
+}
+
 var secretKey = builder.Configuration["Jwt:SecretKey"];
 builder.Services.AddAuthentication(options =>
 {
@@ -257,6 +286,25 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 }).AllowAnonymous();
 
 app.MapControllers();
+
+// Hangfire dashboard + recurring schedule (Phase 26). Mapped before the SPA fallback so
+// /hangfire isn't swallowed by MapFallbackToFile. Guarded so tests (Hangfire disabled) skip it.
+if (hangfireEnabled)
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        // Dashboard can't use our JWT (cookie-based); allow-all in Development, loopback-only otherwise.
+        Authorization = new[] { new HangfireDashboardAuthorizationFilter(app.Environment.IsDevelopment()) }
+    });
+
+    // Nightly digest at 23:00 IST. AddOrUpdate is idempotent by recurring-job id, so re-running it
+    // on every startup just refreshes the schedule instead of creating duplicates.
+    RecurringJob.AddOrUpdate<MissingToolsReportJob>(
+        "missing-tools-nightly",
+        job => job.RunAsync(),
+        "0 23 * * *",
+        new RecurringJobOptions { TimeZone = MissingToolsReportJob.ResolveIndiaTimeZone() });
+}
 
 // Map the hub BEFORE the SPA fallback, otherwise MapFallbackToFile would swallow the
 // /hubs/incidents route and serve index.html instead of completing the negotiate handshake.

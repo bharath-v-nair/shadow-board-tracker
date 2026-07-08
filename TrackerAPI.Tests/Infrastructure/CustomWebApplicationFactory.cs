@@ -33,6 +33,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // be present in time. "__" maps to the ":" config hierarchy. This makes the app
         // validate tokens with the SAME key TestAuthHelper signs them with.
         Environment.SetEnvironmentVariable("Jwt__SecretKey", JwtSecretKey);
+
+        // Same build-time-read problem for Hangfire: Program.cs decides whether to register
+        // Hangfire.SqlServer while building the host. Hangfire.SqlServer cannot run against the
+        // EF InMemory provider and would fail at startup, so force it off via the env var (the
+        // one source guaranteed present in time). Without this, every integration test breaks.
+        Environment.SetEnvironmentVariable("Hangfire__Enabled", "false");
     }
 
     // Unique store name per factory instance keeps test classes isolated from each other.
@@ -56,6 +62,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 // — a REAL working distributed cache — so the cache-aside path is exercised
                 // hermetically without a Redis container.
                 ["Redis:ConnectionString"] = "",
+                // Belt-and-suspenders with the env var above: keep Hangfire off in tests.
+                ["Hangfire:Enabled"] = "false",
             });
         });
 

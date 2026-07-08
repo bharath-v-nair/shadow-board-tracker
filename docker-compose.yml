@@ -56,6 +56,9 @@ services:
       # DNS, so this override is unset in the cloud.) Only scheme/host/port are swapped; the SAS
       # signature covers the resource path, not the host, so it stays valid.
       - Storage__PublicBlobEndpoint=http://localhost:10000
+      # Recipient of the Phase 26 nightly missing-tools digest. In dev the override runs smtp4dev,
+      # so the report lands in the inbox at http://localhost:5001. Blank => the job logs the HTML.
+      - Reports__ManagerEmail=${REPORTS_MANAGER_EMAIL:-manager@factory.local}
 
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest

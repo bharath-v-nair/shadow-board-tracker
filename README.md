@@ -160,6 +160,11 @@ docker compose up --build
   serves photos via short-lived **SAS** URLs; going to real Azure is a connection-string swap.
   Blobs persist in a named volume (`azuritedata`). When storage is unconfigured, upload is disabled
   and the rest of the app is unaffected.
+* **Background jobs:** **Hangfire** (SQL-backed) runs a nightly *missing-tools report* (open
+  incidents by age, 7-day MTTR, top-5 tools) emailed to `Reports__ManagerEmail` — in dev it lands
+  in the smtp4dev inbox. QA can trigger it on demand via `POST /api/reports/missing-tools/run`; the
+  dashboard is at `/hangfire` (loopback/Development only). Jobs persist in SQL, so they survive
+  restarts.
 * **Health probe:** `GET /health` (anonymous) returns a JSON status for each critical dependency
   (SQL, and Redis when configured) so orchestrators can gate traffic on readiness.
 
@@ -192,6 +197,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Background Jobs — nightly missing-tools report (Hangfire) | ✅ Complete (Phase 26) |
 | Photo Uploads via Azure Blob Storage (SAS URLs, Azurite locally) | ✅ Complete (Phase 25) |
 | Backend Hardening (FluentValidation pipeline, health checks) | ✅ Complete (Phase 24) |
 | Redis Distributed Caching (cache-aside + invalidation) | ✅ Complete (Phase 23) |
