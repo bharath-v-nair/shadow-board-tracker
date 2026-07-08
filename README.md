@@ -154,6 +154,8 @@ docker compose up --build
 * **Redis** (`redis:7-alpine`) backs a **cache-aside** layer over the hot read paths (board and
   tool-name/type lists); the application connects automatically via `Redis__ConnectionString`.
   When Redis is absent the API falls back to an in-process memory cache, so nothing breaks.
+* **Health probe:** `GET /health` (anonymous) returns a JSON status for each critical dependency
+  (SQL, and Redis when configured) so orchestrators can gate traffic on readiness.
 
 The image produced here is the same unified-SPA artifact the CI/CD pipeline deploys to Azure App
 Service, giving dev/CI/prod parity.
@@ -184,6 +186,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Backend Hardening (FluentValidation pipeline, health checks) | ✅ Complete (Phase 24) |
 | Redis Distributed Caching (cache-aside + invalidation) | ✅ Complete (Phase 23) |
 | Full-Stack Containerization (Docker Compose: API + SQL + Redis) | ✅ Complete (Phase 22) |
 | Frontend Depth: Theming, Dark Mode, Profile & Search | ✅ Complete (Phase 21) |

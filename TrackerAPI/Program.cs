@@ -9,6 +9,10 @@ using Azure.Identity;
 using TrackerAPI.Services;
 using TrackerAPI.Hubs;
 using TrackerAPI.Middleware;
+using TrackerAPI.Application.Behaviors;
+using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,8 +41,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddControllers();
 
-//MediatR
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+//MediatR — handlers + the cross-cutting pipeline behaviors that wrap every dispatch.
+// Order matters: behaviors run in registration order (outer -> inner). ValidationBehavior is
+// registered FIRST so it is the outermost wrapper: invalid requests fail fast with a 400 before
+// the LoggingBehavior or the handler runs.
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+});
+
+// Discover every AbstractValidator<T> in this assembly and register it as IValidator<T>, so
+// ValidationBehavior can resolve them by request type. Assembly scan = no manual registration
+// per validator (add a validator file and it's picked up automatically).
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 // SignalR for real-time incident push. Force camelCase on the hub payload so pushed
 // objects match the REST API's casing (and the Angular Incident model's field names) —
@@ -71,6 +88,18 @@ else
     builder.Services.AddDistributedMemoryCache();
 }
 builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+
+// Health checks (Phase 24). One anonymous /health endpoint reports whether each critical
+// dependency is reachable, so orchestrators (Docker healthcheck, Azure App Service, k8s probes)
+// can decide if this instance should receive traffic. The DbContext check runs a lightweight
+// CanConnect against SQL; the Redis check is only wired when Redis is actually configured (it is
+// blank in tests and non-Docker dev), matching the cache's own graceful-degradation stance.
+var healthChecks = builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>("database");
+if (!string.IsNullOrEmpty(redisConnection))
+{
+    healthChecks.AddRedis(redisConnection, name: "redis");
+}
 
 // Enable Application Insights only when a connection string is actually configured
 // (it is in Azure via app settings). Registering it without one throws at startup, which
@@ -181,6 +210,31 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseStaticFiles();
+
+// Anonymous health endpoint with a JSON body listing each dependency's status. Anonymous by
+// design: probes must reach it without a JWT. The custom writer turns the HealthReport into a
+// stable JSON contract instead of the default plain-text "Healthy".
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var payload = new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                durationMs = e.Value.Duration.TotalMilliseconds
+            })
+        };
+        await context.Response.WriteAsync(
+            JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    }
+}).AllowAnonymous();
 
 app.MapControllers();
 
