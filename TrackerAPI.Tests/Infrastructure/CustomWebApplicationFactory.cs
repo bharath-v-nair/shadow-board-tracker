@@ -2,8 +2,11 @@ using System.Linq;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc.Testing;
 using TrackerAPI.Data;
 using TrackerAPI.Interfaces;
@@ -48,6 +51,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:SecretKey"] = JwtSecretKey,
                 // Present so GetConnectionString doesn't return null at registration time.
                 ["ConnectionStrings:DefaultConnection"] = "InMemory",
+                // Blank out Redis (appsettings.Development.json points it at localhost:6379,
+                // which isn't running in CI). Program.cs then registers AddDistributedMemoryCache
+                // — a REAL working distributed cache — so the cache-aside path is exercised
+                // hermetically without a Redis container.
+                ["Redis:ConnectionString"] = "",
             });
         });
 
@@ -68,6 +76,16 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Don't hit SendGrid during tests.
             RemoveAll(services, typeof(IEmailService));
             services.AddScoped<IEmailService, NoOpEmailService>();
+
+            // Give EACH factory instance its OWN distributed cache. The default
+            // AddDistributedMemoryCache registration otherwise bleeds cached entries across
+            // the separate factory instances xUnit creates per test class (one class seeds
+            // boards:all, another sees it) — flaky cross-class contamination. A fresh
+            // MemoryDistributedCache object per factory keeps the cache-aside tests hermetic
+            // while still exercising the real RedisCacheService against a real IDistributedCache.
+            RemoveAll(services, typeof(IDistributedCache));
+            services.AddSingleton<IDistributedCache>(
+                new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions())));
         });
     }
 

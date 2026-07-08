@@ -52,6 +52,26 @@ builder.Services.AddSignalR()
 // Broadcasts incident changes from the command handlers to all connected clients.
 builder.Services.AddScoped<IIncidentNotifier, IncidentNotifier>();
 
+// Distributed cache (cache-aside, Phase 23). If a Redis connection string is configured
+// we back the cache with Redis (shared across every API instance — the correctness win for
+// Azure scale-out); otherwise we fall back to an in-process distributed memory cache so
+// tests and non-Docker `dotnet run` work with ZERO extra setup. Both implement the same
+// IDistributedCache, so RedisCacheService and every handler are unchanged either way.
+var redisConnection = builder.Configuration["Redis:ConnectionString"];
+if (!string.IsNullOrEmpty(redisConnection))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = "shadowboard:";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+
 // Enable Application Insights only when a connection string is actually configured
 // (it is in Azure via app settings). Registering it without one throws at startup, which
 // would break the secret-free Docker container running with ASPNETCORE_ENVIRONMENT=Production.

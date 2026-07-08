@@ -2,7 +2,9 @@ using MediatR;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using TrackerAPI.Application.Caching;
 using TrackerAPI.Data;
+using TrackerAPI.Interfaces;
 
 namespace TrackerAPI.Application.Features.Boards.Commands
 {
@@ -19,20 +21,24 @@ namespace TrackerAPI.Application.Features.Boards.Commands
     public class DeleteBoardCommandHandler : IRequestHandler<DeleteBoardCommand, bool>
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICacheService _cache;
 
-        public DeleteBoardCommandHandler(ApplicationDbContext context)
+        public DeleteBoardCommandHandler(ApplicationDbContext context, ICacheService cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<bool> Handle(DeleteBoardCommand request, CancellationToken cancellationToken)
         {
             var board = await _context.Boards.FindAsync(new object[] { request.Id }, cancellationToken);
-            
+
             if (board == null) return false;
 
             _context.Boards.Remove(board);
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _cache.RemoveAsync(CacheKeys.BoardsAll, CacheKeys.Board(board.Id));
             return true;
         }
     }

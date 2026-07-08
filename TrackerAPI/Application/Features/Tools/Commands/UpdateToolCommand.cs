@@ -1,8 +1,10 @@
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
+using TrackerAPI.Application.Caching;
 using TrackerAPI.Data;
 using TrackerAPI.DTOs;
+using TrackerAPI.Interfaces;
 
 namespace TrackerAPI.Application.Features.Tools.Commands
 {
@@ -19,10 +21,12 @@ namespace TrackerAPI.Application.Features.Tools.Commands
     public class UpdateToolCommandHandler : IRequestHandler<UpdateToolCommand, bool>
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICacheService _cache;
 
-        public UpdateToolCommandHandler(ApplicationDbContext context)
+        public UpdateToolCommandHandler(ApplicationDbContext context, ICacheService cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<bool> Handle(UpdateToolCommand request, CancellationToken cancellationToken)
@@ -33,6 +37,9 @@ namespace TrackerAPI.Application.Features.Tools.Commands
                 return false;
             }
 
+            // Capture the board the tool is leaving: a move must invalidate BOTH boards.
+            var originalBoardId = tool.BoardId;
+
             tool.Name = request.Dto.Name;
             tool.Type = request.Dto.Type;
             tool.IconName = request.Dto.IconName;
@@ -40,6 +47,13 @@ namespace TrackerAPI.Application.Features.Tools.Commands
             tool.BoardId = request.Dto.BoardId;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _cache.RemoveAsync(
+                CacheKeys.BoardsAll,
+                CacheKeys.Board(originalBoardId),
+                CacheKeys.Board(tool.BoardId),
+                CacheKeys.ToolNames,
+                CacheKeys.ToolTypes);
             return true;
         }
     }

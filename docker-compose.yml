@@ -1,7 +1,7 @@
 # One command to run the whole stack locally: `docker compose up --build`
 #   api  -> the unified SPA (Angular UI + .NET API) on http://localhost:8080
 #   sqlserver -> Azure SQL Edge, data persisted in a named volume
-#   redis -> present for Phase 23 (caching); the app does NOT use it yet
+#   redis -> distributed cache backing cache-aside reads (Phase 23)
 #
 # Containers talk to each other over the default compose network using the SERVICE
 # NAME as DNS hostname (e.g. the API reaches the DB at "sqlserver,1433", not localhost).
@@ -18,12 +18,19 @@ services:
         # Don't start the API until SQL reports healthy — Program.cs runs
         # db.Database.Migrate() at boot and needs the server listening.
         condition: service_healthy
+      redis:
+        # Not gated on health: if Redis is briefly unavailable the cache layer falls
+        # through to the database, so the API can start alongside it.
+        condition: service_started
     environment:
       # Service name "sqlserver" resolves via compose DNS to the DB container.
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=ShadowBoardDb;User Id=sa;Password=SuperStrong!Passw0rd2026;TrustServerCertificate=True;
       # Config via env vars (the 12-factor way) instead of baking secrets into the image.
       # Double underscore maps to the ASP.NET Core config section separator (Jwt:SecretKey).
       - Jwt__SecretKey=SuperSecretShadowBoardTrackerKey2026!!
+      # Compose DNS: the API reaches Redis by its service name "redis" on 6379. When set,
+      # Program.cs backs IDistributedCache with Redis; unset, it falls back to memory cache.
+      - Redis__ConnectionString=redis:6379
       - ASPNETCORE_ENVIRONMENT=Production
       # Email transport (prod). Values come from the gitignored .env (Brevo SMTP), NOT
       # committed. `docker compose up` also loads docker-compose.override.yml, which points
@@ -63,8 +70,8 @@ services:
     container_name: shadowboard-redis
     ports:
       - "6379:6379"
-    # NOTE: infrastructure for Phase 23 (cache-aside). The application does not connect
-    # to Redis yet — it is wired here so the caching phase is a code change, not an infra one.
+    # Backs IDistributedCache for cache-aside reads (boards + tool name/type lists).
+    # The API connects via Redis__ConnectionString=redis:6379 (set on the api service).
 
 volumes:
   sqldata:

@@ -17,7 +17,7 @@ Upon reporting a missing tool, the system automatically assigns a recovery task 
 * **Cross-Device Local Network Testing Setup:** The development environment is configured to bind both servers (API and Angular dev server) to the wildcard IP (`0.0.0.0`), enabling live testing on physical mobile hardware on the same Wi-Fi subnet without a production deployment.
 * **Board CRUD Operations:** QA Administrators can create, update, and delete shadow boards and their associated tool inventories directly from the application.
 * **Minimalist Mobile-First UI:** A clean, Tailwind-driven interface designed for one-handed factory operations, replacing rigid tables and lists with intuitive, color-coded accent cards.
-* **JIT Global Dictionaries:** A highly optimized "Just-In-Time" data fetching architecture that pushes deduplication to the SQL layer, ensuring autocomplete fields (like Tool Names) are always 100% synchronized globally across the factory floor without caching overhead.
+* **JIT Global Dictionaries:** A "Just-In-Time" data fetching architecture that pushes deduplication to the SQL layer for autocomplete fields (like Tool Names), then serves them through a Redis cache-aside layer that is invalidated on every tool write — keeping them fast *and* globally consistent across the factory floor.
 * **Dynamic QR Code Engine & Hardware Printing:** An on-the-fly QR code generation system that allows QA managers to customize board labels (size, logos, titles). Utilizing a stateless configuration architecture and an advanced `@media print` CSS strategy (with absolute layout decoupling), the system bypasses browser print engine stretching bugs to guarantee pixel-perfect proportions when sent to physical A4 hardware printers.
 
 ## Tech Stack
@@ -151,8 +151,9 @@ docker compose up --build
 * **Demo login:** works out of the box (the database is migrated and seeded automatically at startup).
 * **Data persistence:** the database lives in a named Docker volume (`sqldata`), so
   `docker compose down && docker compose up` keeps your data. Use `docker compose down -v` to wipe it.
-* **Redis** (`redis:7-alpine`) is started as infrastructure for upcoming cache-aside work; the
-  application does not use it yet.
+* **Redis** (`redis:7-alpine`) backs a **cache-aside** layer over the hot read paths (board and
+  tool-name/type lists); the application connects automatically via `Redis__ConnectionString`.
+  When Redis is absent the API falls back to an in-process memory cache, so nothing breaks.
 
 The image produced here is the same unified-SPA artifact the CI/CD pipeline deploys to Azure App
 Service, giving dev/CI/prod parity.
@@ -183,6 +184,7 @@ The following features are planned or currently in progress:
 
 | Feature | Status |
 |---|---|
+| Redis Distributed Caching (cache-aside + invalidation) | ✅ Complete (Phase 23) |
 | Full-Stack Containerization (Docker Compose: API + SQL + Redis) | ✅ Complete (Phase 22) |
 | Frontend Depth: Theming, Dark Mode, Profile & Search | ✅ Complete (Phase 21) |
 | Real-Time Sync (SignalR / WebSockets) | ✅ Complete (Phase 20) |
